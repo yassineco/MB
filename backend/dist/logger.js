@@ -7,7 +7,7 @@ exports.logger = void 0;
 exports.createPerformanceLogger = createPerformanceLogger;
 exports.createContextLogger = createContextLogger;
 const pino_1 = __importDefault(require("pino"));
-const env_1 = require("@/config/env");
+const env_1 = require("./config/env");
 // Configuration du logger avec Pino
 const loggerConfig = {
     level: env_1.config.LOG_LEVEL,
@@ -108,4 +108,3 @@ function createContextLogger(context) {
 }
 // Export du logger par défaut
 exports.default = exports.logger;
-//# sourceMappingURL=logger.js.map

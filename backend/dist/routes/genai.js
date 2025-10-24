@@ -41,8 +41,6 @@ async function genaiRoutes(fastify, options) {
      */
     fastify.post('/action', {
         schema: {
-            description: 'Process AI action with Vertex AI Gemini',
-            tags: ['AI'],
             body: {
                 type: 'object',
                 required: ['action', 'text'],
@@ -122,11 +120,7 @@ async function genaiRoutes(fastify, options) {
         try {
             // Validation du body avec Zod
             const validatedBody = aiRequestSchema.parse(request.body);
-            fastify.log.info('Processing AI request', {
-                action: validatedBody.action,
-                textLength: validatedBody.text.length,
-                hasOptions: !!validatedBody.options,
-            });
+            fastify.log.info(`Processing AI request: ${validatedBody.action}, text length: ${validatedBody.text.length}`);
             // Validation spécifique selon l'action
             if (validatedBody.action === 'translate' && !validatedBody.options?.targetLanguage) {
                 return reply.code(400).send({
@@ -149,12 +143,7 @@ async function genaiRoutes(fastify, options) {
                 resultLength: result.resultLength,
                 processingTime: result.processingTime,
             });
-            fastify.log.info('AI request completed successfully', {
-                action: result.action,
-                originalLength: result.originalLength,
-                resultLength: result.resultLength,
-                processingTime: result.processingTime,
-            });
+            fastify.log.info(`AI request completed: ${result.action} in ${result.processingTime}ms`);
             return reply.code(200).send({
                 success: true,
                 data: result,
@@ -172,10 +161,7 @@ async function genaiRoutes(fastify, options) {
                 });
             }
             // Erreur Vertex AI ou autre
-            fastify.log.error('GenAI processing error', {
-                error: error instanceof Error ? error.message : error,
-                stack: error instanceof Error ? error.stack : undefined,
-            });
+            fastify.log.error(`GenAI processing error: ${error instanceof Error ? error.message : error}`);
             perfLogger.error(error);
             return reply.code(500).send({
                 error: true,
@@ -218,7 +204,7 @@ async function genaiRoutes(fastify, options) {
             });
         }
         catch (error) {
-            fastify.log.error('Vertex AI health check failed', { error });
+            fastify.log.error(`Vertex AI health check failed: ${error instanceof Error ? error.message : error}`);
             return reply.code(500).send({
                 success: false,
                 error: 'Vertex AI health check failed',
@@ -288,4 +274,3 @@ async function genaiRoutes(fastify, options) {
     });
     fastify.log.info('GenAI routes registered');
 }
-//# sourceMappingURL=genai.js.map

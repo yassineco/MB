@@ -43,11 +43,7 @@ async function validateSignature(request) {
         const currentTime = Date.now();
         const maxAge = 5 * 60 * 1000; // 5 minutes en millisecondes
         if (Math.abs(currentTime - requestTime) > maxAge) {
-            request.log.warn('Request timestamp too old', {
-                requestTime: new Date(requestTime).toISOString(),
-                currentTime: new Date(currentTime).toISOString(),
-                ageDiff: Math.abs(currentTime - requestTime),
-            });
+            request.log.warn(`Request timestamp too old: ${Math.abs(currentTime - requestTime)}ms ago`);
             return false;
         }
         // Construire le message à partir du body de la requête
@@ -61,16 +57,12 @@ async function validateSignature(request) {
         // Comparaison sécurisée des signatures (protection timing attacks)
         const isValid = crypto_1.default.timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expectedSignature, 'hex'));
         if (!isValid) {
-            request.log.warn('Invalid signature', {
-                expectedLength: expectedSignature.length,
-                receivedLength: signature.length,
-                bodyLength: body.length,
-            });
+            request.log.warn(`Invalid signature: expected ${expectedSignature.length} chars, got ${signature.length} chars`);
         }
         return isValid;
     }
     catch (error) {
-        request.log.error('Signature validation error', { error });
+        request.log.error(`Signature validation error: ${error instanceof Error ? error.message : error}`);
         return false;
     }
 }
@@ -130,4 +122,3 @@ if (env_1.config.NODE_ENV === 'development') {
         console.warn('⚠️  Using default HMAC_SECRET in development. Please set a real secret.');
     }
 }
-//# sourceMappingURL=sign.js.map

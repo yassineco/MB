@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+require("dotenv/config");
 const fastify_1 = __importDefault(require("fastify"));
 const helmet_1 = __importDefault(require("@fastify/helmet"));
 const cors_1 = __importDefault(require("@fastify/cors"));
@@ -72,10 +73,109 @@ async function createServer() {
             project: config.PROJECT_ID,
             endpoints: {
                 health: '/health',
-                genai: '/api/genai/process'
+                genai: '/api/genai/process',
+                rag: {
+                    upload: '/rag/documents',
+                    search: '/rag/search',
+                    generate: '/rag/generate',
+                    stats: '/rag/stats',
+                    health: '/rag/health'
+                }
             }
         };
     });
+    // Routes RAG simplifiées pour test d'interface
+    server.post('/rag/documents', async (request, reply) => {
+        const body = request.body;
+        // Simulation du traitement
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return reply.send({
+            success: true,
+            documentId: `doc_${Date.now()}`,
+            fileName: body.fileName || 'document.txt',
+            chunksCount: Math.floor(body.content?.length / 500) || 1,
+            embeddingsGenerated: Math.floor(body.content?.length / 500) || 1,
+            processingTimeMs: 1000,
+            message: 'Document traité avec succès'
+        });
+    });
+    server.get('/rag/search', async (request, reply) => {
+        const query = request.query;
+        // Validation des paramètres
+        if (!query.q) {
+            return reply.status(400).send({
+                success: false,
+                error: 'MISSING_QUERY',
+                message: 'Parameter "q" is required'
+            });
+        }
+        // Simulation de la recherche
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return reply.send({
+            success: true,
+            results: [
+                {
+                    id: 'chunk_1',
+                    content: `Résultat simulé pour la recherche: "${query.q}"`,
+                    similarity: 0.85,
+                    metadata: {
+                        documentId: 'doc_123',
+                        fileName: 'exemple.txt',
+                        chunkIndex: 0
+                    }
+                }
+            ],
+            totalResults: 1,
+            processingTimeMs: 500
+        });
+    });
+    server.post('/rag/generate', async (request, reply) => {
+        const body = request.body;
+        // Validation
+        if (!body.query) {
+            return reply.status(400).send({
+                success: false,
+                error: 'MISSING_QUERY',
+                message: 'Field "query" is required'
+            });
+        }
+        // Simulation de la génération
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        return reply.send({
+            success: true,
+            response: `Réponse augmentée simulée pour: "${body.query}"\n\nBasée sur les documents indexés, voici une réponse contextuelle qui utilise les informations pertinentes de votre base de connaissances.`,
+            sources: [
+                {
+                    id: 'chunk_1',
+                    content: 'Contenu source utilisé...',
+                    similarity: 0.85,
+                    metadata: {
+                        documentId: 'doc_123',
+                        fileName: 'exemple.txt'
+                    }
+                }
+            ],
+            processingTimeMs: 1500,
+            tokensUsed: 150
+        });
+    });
+    server.get('/rag/health', async () => ({
+        success: true,
+        services: { embeddings: true, storage: { success: true }, vectorDb: true },
+        overallHealth: 'healthy',
+        timestamp: new Date().toISOString(),
+    }));
+    server.get('/rag/stats', async () => ({
+        success: true,
+        stats: {
+            totalDocuments: 0,
+            totalChunks: 0,
+            totalEmbeddings: 0,
+            processingQueue: 0,
+            indexHealth: 'healthy',
+            lastUpdate: new Date().toISOString(),
+        },
+    }));
     // Route GenAI principale
     server.post('/api/genai/process', {
         schema: {

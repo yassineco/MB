@@ -130,4 +130,3 @@ async function startServer() {
 if (require.main === module) {
     startServer();
 }
-//# sourceMappingURL=main.js.map

@@ -100,4 +100,3 @@ async function knowledgeRoutes(fastify, options) {
     });
     logger_1.logger.info('Knowledge routes registered (placeholders)');
 }
-//# sourceMappingURL=knowledge.js.map

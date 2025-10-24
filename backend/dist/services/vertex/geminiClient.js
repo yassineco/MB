@@ -258,4 +258,3 @@ function getGeminiClient() {
     }
     return geminiClient;
 }
-//# sourceMappingURL=geminiClient.js.map

@@ -1,5 +1,5 @@
 import pino from 'pino';
-import { config } from '@/config/env';
+import { config } from './config/env';
 
 // Configuration du logger avec Pino
 const loggerConfig: pino.LoggerOptions = {

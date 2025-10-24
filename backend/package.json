@@ -33,6 +33,7 @@
     "@google-cloud/secret-manager": "^5.0.1",
     "@google-cloud/storage": "^7.7.0",
     "@google-cloud/vertexai": "^1.4.0",
+    "dotenv": "^17.2.3",
     "fastify": "^4.24.3",
     "pino": "^8.17.2",
     "pino-pretty": "^10.3.1",
