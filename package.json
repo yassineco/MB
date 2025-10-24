@@ -1,0 +1,47 @@
+{
+  "name": "magic-button",
+  "version": "1.0.0",
+  "description": "Chrome Extension MV3 + GCP Vertex AI - Assistant IA intelligent",
+  "scripts": {
+    "install:all": "npm install && npm run install:backend && npm run install:extension",
+    "install:backend": "cd backend && npm install",
+    "install:extension": "cd extension && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:extension\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:extension": "cd extension && npm run dev",
+    "build": "npm run build:backend && npm run build:extension",
+    "build:backend": "cd backend && npm run build",
+    "build:extension": "cd extension && npm run build",
+    "test": "npm run test:backend && npm run test:extension",
+    "test:backend": "cd backend && npm run test",
+    "test:extension": "cd extension && npm run test",
+    "test:coverage": "npm run test:backend:coverage",
+    "test:backend:coverage": "cd backend && npm run test:coverage",
+    "lint": "npm run lint:backend && npm run lint:extension",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:extension": "cd extension && npm run lint",
+    "type-check": "npm run type-check:backend && npm run type-check:extension",
+    "type-check:backend": "cd backend && npm run type-check",
+    "type-check:extension": "cd extension && npm run type-check",
+    "deploy:backend": "cd backend && npm run deploy",
+    "deploy:infra": "cd infra/terraform && terraform apply",
+    "bootstrap:gcp": "./scripts/bootstrap-gcp.sh",
+    "clean": "rm -rf node_modules backend/node_modules extension/node_modules backend/dist extension/dist"
+  },
+  "keywords": [
+    "chrome-extension",
+    "vertex-ai",
+    "gcp",
+    "ai",
+    "gemini",
+    "rag"
+  ],
+  "author": "Yassine",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
