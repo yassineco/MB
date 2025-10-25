@@ -136,7 +136,12 @@ async function ragRoutes(fastify) {
                 ...(request.body.language && { language: request.body.language }),
             };
             // Traitement du document via RAG
-            const processingResult = await rag_1.ragService.processDocument(fileBuffer, request.body.fileName, request.body.mimeType, request.headers['x-user-id'], { metadata });
+            const processingResult = await rag_1.ragService.processDocument({
+                originalname: request.body.fileName,
+                buffer: fileBuffer,
+                mimetype: request.body.mimeType,
+                metadata
+            });
             if (!processingResult.success) {
                 return reply.status(500).send({
                     success: false,
@@ -327,7 +332,8 @@ async function ragRoutes(fastify) {
             maxContextChunks: request.body.maxContextChunks,
         }, 'Processing response generation request');
         try {
-            const result = await rag_1.ragService.generateAugmentedResponse(request.body.query, request.body.maxContextChunks, request.body.searchOptions);
+            const result = await rag_1.ragService.generateAugmentedResponse(request.body.query, undefined, // maxContextChunks temporairement désactivé
+            request.body.searchOptions);
             logger_1.logger.info({
                 action: 'rag_generate_success',
                 requestId,

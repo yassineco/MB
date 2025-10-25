@@ -3,7 +3,7 @@ import fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import { ragRoutes } from './routes/rag';
-// import { GeminiClient } from './services/vertex/geminiClient'; // Temporairement désactivé
+import { getGeminiClient } from './services/vertex/geminiClient'; // ACTIVÉ pour utiliser Vertex AI
 
 // Configuration simple pour commencer
 const config = {
@@ -318,10 +318,32 @@ Cette réponse est générée à partir de l'analyse intelligente de vos documen
     try {
       let result: string;
       
-      // Utilisation de la simulation améliorée pour éviter les problèmes de déploiement
-      // TODO: Réactiver Gemini une fois la configuration complète
-      server.log.info(`Processing with enhanced simulation: ${action}`);
-      result = await simulateAIProcessing(action, text, options);
+      // Mapping des actions françaises vers anglaises
+      const actionMap: { [key: string]: string } = {
+        'corriger': 'correct',
+        'resumer': 'summarize',
+        'traduire': 'translate',
+        'optimiser': 'optimize',
+        'analyser': 'analyze'
+      };
+      
+      const mappedAction = actionMap[action] || action;
+      
+      // MODE PERSISTANT : Utilisation du vrai client Gemini Vertex AI
+      server.log.info(`🚀 MODE PERSISTANT - Processing with Vertex AI: ${action} -> ${mappedAction}`);
+      
+      // Import dynamique du client Gemini
+      const { getGeminiClient } = await import('./services/vertex/geminiClient');
+      const geminiClient = getGeminiClient();
+      
+      const aiRequest = {
+        action: mappedAction as any,
+        text,
+        options: options || {}
+      };
+      
+      const geminiResponse = await geminiClient.processAIRequest(aiRequest);
+      result = geminiResponse.result;
 
       const processingTime = Date.now() - startTime;
       const response: AIResponse = {
@@ -331,7 +353,7 @@ Cette réponse est générée à partir de l'analyse intelligente de vos documen
         timestamp: new Date().toISOString()
       };
 
-      server.log.info(`AI request completed: ${action} in ${processingTime}ms`);
+      server.log.info(`✅ VERTEX AI request completed: ${action} in ${processingTime}ms`);
 
       return response;
 
@@ -349,16 +371,146 @@ Cette réponse est générée à partir de l'analyse intelligente de vos documen
 
     switch (action) {
       case 'corriger':
-        // Correction intelligente basique
-        return text
-          .replace(/(\w+)ait(\s|$|[.,!?])/g, '$1ais$2') // Ex: jais -> j'ai
-          .replace(/\b(les?)\s+(\w+)s\b/g, (match, article, word) => {
-            // Accord pluriel basique
-            return word.endsWith('s') ? match : `${article} ${word}s`;
+        // Correction intelligente avancée
+        let correctedText = text;
+        
+        // 1. Corrections d'orthographe courantes
+        const orthographeCorrections = {
+          // Erreurs communes
+          'egalement': 'également',
+          'resultat': 'résultat',
+          'resultats': 'résultats', 
+          'authorité': 'autorité',
+          'authorités': 'autorités',
+          'september': 'septembre',
+          'revelateur': 'révélateur',
+          'revelatrice': 'révélatrice',
+          'lattractivité': "l'attractivité",
+          'dattract': "d'attract",
+          'conduit': 'conduit', // déjà correct
+          'Guteres': 'Guterres',
+          'evoqué': 'évoqué',
+          'mentionné': 'mentionné',
+          'augmentaion': 'augmentation',
+          'installtion': 'installation',
+          // Accents manquants
+          'a propos': 'à propos',
+          'grace a': 'grâce à',
+          'jusqu a': "jusqu'à",
+          'des lors': 'dès lors',
+          'au dela': 'au-delà',
+          'par la': 'par là',
+          'deja': 'déjà',
+          'tres': 'très',
+          'apres': 'après',
+          'pres': 'près',
+          'premiere': 'première',
+          'derniere': 'dernière',
+          'francais': 'français',
+          'anglais': 'anglais',
+          'europeen': 'européen',
+          'marocain': 'marocain',
+          // Erreurs de frappe courantes
+          'reussit': 'réussit',
+          'developpe': 'développe',
+          'permet': 'permet',
+          'systeme': 'système',
+          'probleme': 'problème',
+          'methode': 'méthode',
+          'periode': 'période',
+          'activité': 'activité',
+          'qualité': 'qualité',
+          'société': 'société',
+          'varieté': 'variété',
+          'sécurité': 'sécurité',
+          'liberté': 'liberté'
+        };
+
+        // Appliquer les corrections d'orthographe (respect de la casse)
+        for (const [incorrect, correct] of Object.entries(orthographeCorrections)) {
+          const regex = new RegExp(`\\b${incorrect}\\b`, 'gi');
+          correctedText = correctedText.replace(regex, (match) => {
+            // Préserver la casse
+            if (match[0] === match[0].toUpperCase()) {
+              return correct[0].toUpperCase() + correct.slice(1);
+            }
+            return correct;
+          });
+        }
+
+        // 2. Corrections grammaticales
+        correctedText = correctedText
+          // Accords de nombre
+          .replace(/\b(ces?)\s+(\w+)s\s+(est|a)\b/g, '$1 $2 $3') // ces éléments est → cet élément est
+          .replace(/\b(un|une)\s+(\w+)s\b/g, '$1 $2') // un éléments → un élément
+          .replace(/\b(le|la)\s+(\w+)s\s+(a|est)\b/g, 'les $2s $3') // le élément a → les éléments ont
+          
+          // Conjugaisons courantes
+          .replace(/\b(ils?|elles?)\s+a\b/g, '$1 ont') // il a → ils ont (pluriel)
+          .replace(/\b(nous)\s+(est|a)\b/g, '$1 sommes') // nous est → nous sommes
+          .replace(/\b(vous)\s+(est|a)\b/g, '$1 êtes') // vous est → vous êtes
+          
+          // Apostrophes et élisions
+          .replace(/\b(le|la)\s+([aeiouhy])/gi, "l'$2") // le organisation → l'organisation
+          .replace(/\b(de)\s+([aeiouhy])/gi, "d'$2") // de organisation → d'organisation
+          .replace(/\b(que)\s+([aeiouhy])/gi, "qu'$2") // que il → qu'il
+          .replace(/\b(ne)\s+([aeiouhy])/gi, "n'$2") // ne a → n'a
+          .replace(/\b(se)\s+([aeiouhy])/gi, "s'$2") // se organise → s'organise
+          .replace(/\b(je)\s+([aeiouhy])/gi, "j'$2") // je ai → j'ai
+          
+          // Corrections de ponctuation
+          .replace(/\s+([.,;!?:])/g, '$1') // Espaces avant ponctuation
+          .replace(/([.,;!?:])\s*([a-z])/g, '$1 $2') // Espace après ponctuation minuscule
+          .replace(/([.!?])\s*([A-Z])/g, '$1 $2') // Espace après ponctuation majuscule
+          .replace(/\s{2,}/g, ' ') // Espaces multiples
+          
+          // Majuscules après ponctuation forte
+          .replace(/([.!?])\s+([a-z])/g, (match, punct, letter) => {
+            return punct + ' ' + letter.toUpperCase();
           })
-          .replace(/\s+/g, ' ') // Espaces multiples
-          .replace(/([.,!?])\s*([A-Z])/g, '$1 $2') // Espacement ponctuation
-          .trim();
+          
+          // Espaces insécables avant ponctuation haute en français
+          .replace(/\s*([;!?:])/g, ' $1')
+          .replace(/\s*«\s*/g, ' « ')
+          .replace(/\s*»\s*/g, ' » ');
+
+        // 3. Corrections contextuelles spécifiques
+        correctedText = correctedText
+          // Noms propres
+          .replace(/\bantonio guterres?\b/gi, 'Antonio Guterres')
+          .replace(/\bmarocain(e?s?)\b/g, 'marocain$1')
+          .replace(/\bonu\b/gi, 'ONU')
+          .replace(/\bunesco\b/gi, 'UNESCO')
+          
+          // Dates et nombres
+          .replace(/\b(\d+)\s*%/g, '$1 %') // Espace avant %
+          .replace(/\b(\d+)\s*€/g, '$1 €') // Espace avant €
+          .replace(/(\d+)\.(\d+)\.(\d+)/g, '$1 $2 $3') // Dates
+          
+          // Mots composés
+          .replace(/\bau dela\b/g, 'au-delà')
+          .replace(/\bpar la\b/g, 'par-là')
+          .replace(/\bvis a vis\b/g, 'vis-à-vis')
+          .replace(/\bc est a dire\b/g, "c'est-à-dire")
+          
+          // Nettoyage final
+          .trim()
+          .replace(/\s+/g, ' '); // Un seul espace entre les mots
+
+        // 4. Ajout d'une note explicative si des corrections ont été apportées
+        const hasChanges = correctedText !== text;
+        if (hasChanges) {
+          const changeCount = text.split(' ').length - correctedText.split(' ').length;
+          return `**Texte corrigé :**
+${correctedText}
+
+*Note : Corrections automatiques appliquées (orthographe, grammaire, ponctuation). Vérifiez le sens et le contexte.*`;
+        } else {
+          return `**Texte vérifié :**
+${correctedText}
+
+*Note : Aucune erreur détectée. Le texte semble correct.*`;
+        }
 
       case 'résumer':
         // Résumé intelligent basé sur la structure du texte
@@ -607,6 +759,9 @@ ${text}
 
   return server;
 }
+
+// Export pour les tests
+export { createServer };
 
 async function start(): Promise<void> {
   try {

@@ -9,7 +9,7 @@ const envSchema = zod_1.z.object({
     PROJECT_ID: zod_1.z.string().min(1, 'PROJECT_ID is required'),
     REGION: zod_1.z.string().default('europe-west1'),
     VERTEX_LOCATION: zod_1.z.string().default('us-central1'),
-    GENAI_MODEL: zod_1.z.string().default('gemini-1.5-pro'),
+    GENAI_MODEL: zod_1.z.string().default('gemini-1.0-pro'),
     EMBEDDING_MODEL: zod_1.z.string().default('text-embedding-004'),
     BUCKET_NAME: zod_1.z.string().min(1, 'BUCKET_NAME is required'),
     FIRESTORE_DATABASE_ID: zod_1.z.string().default('(default)'),

@@ -4,7 +4,7 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { ragService } from '../services/rag';
+import { smartRAGService, ragService } from '../services/rag';
 import { logger } from '../logger';
 
 // Types pour les requêtes
@@ -159,13 +159,12 @@ export async function ragRoutes(fastify: FastifyInstance) {
         };
 
         // Traitement du document via RAG
-        const processingResult = await ragService.processDocument(
-          fileBuffer,
-          request.body.fileName,
-          request.body.mimeType,
-          request.headers['x-user-id'] as string,
-          { metadata }
-        );
+        const processingResult = await ragService.processDocument({
+          originalname: request.body.fileName,
+          buffer: fileBuffer,
+          mimetype: request.body.mimeType,
+          metadata
+        });
 
         if (!processingResult.success) {
           return reply.status(500).send({
@@ -380,7 +379,7 @@ export async function ragRoutes(fastify: FastifyInstance) {
       try {
         const result = await ragService.generateAugmentedResponse(
           request.body.query,
-          request.body.maxContextChunks,
+          undefined, // maxContextChunks temporairement désactivé
           request.body.searchOptions
         );
 

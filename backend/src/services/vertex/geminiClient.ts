@@ -1,6 +1,6 @@
 import { VertexAI, GenerativeModel, HarmCategory, HarmBlockThreshold } from '@google-cloud/vertexai';
-import { config } from '@/config/env';
-import { logger, createPerformanceLogger } from '@/logger';
+import { config } from '../../config/env';
+import { logger, createPerformanceLogger } from '../../logger';
 
 /**
  * Client Vertex AI pour Magic Button
@@ -99,11 +99,11 @@ class GeminiClient {
       }
 
       const candidate = response.candidates[0];
-      if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+      if (!candidate || !candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
         throw new Error('Invalid response structure from Gemini');
       }
 
-      const text = candidate.content.parts[0].text;
+      const text = candidate.content.parts[0]?.text;
       if (!text) {
         throw new Error('Empty text response from Gemini');
       }

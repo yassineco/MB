@@ -160,9 +160,9 @@ Actions :
 💻 Repository GitHub :
 
 1. Structure du projet
-   - backend/ (TypeScript + Fastify)
+   - backend/ (TypeScript + Fastify + Tests complets)
    - extension/ (React + TypeScript)
-   - docs/ (documentation technique)
+   - docs/ (documentation technique + analyse coûts)
    - infra/ (Terraform)
 
 2. Qualité du code

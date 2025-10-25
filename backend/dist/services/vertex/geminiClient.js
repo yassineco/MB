@@ -3,8 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GeminiClient = void 0;
 exports.getGeminiClient = getGeminiClient;
 const vertexai_1 = require("@google-cloud/vertexai");
-const env_1 = require("@/config/env");
-const logger_1 = require("@/logger");
+const env_1 = require("../../config/env");
+const logger_1 = require("../../logger");
 // Configuration des filtres de sécurité Vertex AI
 const SAFETY_SETTINGS = [
     {
@@ -63,10 +63,10 @@ class GeminiClient {
                 throw new Error('No response candidates from Gemini');
             }
             const candidate = response.candidates[0];
-            if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+            if (!candidate || !candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
                 throw new Error('Invalid response structure from Gemini');
             }
-            const text = candidate.content.parts[0].text;
+            const text = candidate.content.parts[0]?.text;
             if (!text) {
                 throw new Error('Empty text response from Gemini');
             }

@@ -1,7 +1,10 @@
 // Background script pour Chrome Extension MV3
 // Gère les événements en arrière-plan
 
+import { API_CONFIG } from '../config/api';
+
 console.log('Magic Button background script loaded');
+console.log('🚀 API Configuration:', API_CONFIG.BASE_URL);
 
 // Événement d'installation de l'extension
 chrome.runtime.onInstalled.addListener((details) => {
@@ -26,7 +29,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true; // Indique une réponse asynchrone
       
     case 'PROCESS_AI_REQUEST':
-      handleAIRequest(message.data, sendResponse);
+      processAIRequest(message.data, sendResponse);
       return true;
       
     default:
@@ -55,38 +58,53 @@ async function handleGetSelectedText(tabId: number | undefined, sendResponse: (r
   }
 }
 
-// Configuration de l'API
-const API_BASE_URL = 'https://magic-button-api-374140035541.europe-west1.run.app';
+// Configuration de l'API - MODE PERSISTANT PRODUCTION
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
-// Traiter une requête IA via l'API Cloud Run
-async function handleAIRequest(data: any, sendResponse: (response: any) => void) {
+// Traiter une requête IA via l'API Cloud Run - VERTEX AI
+async function processAIRequest(data: any, sendResponse: (response: any) => void) {
   try {
-    console.log('Making API request to:', `${API_BASE_URL}/api/genai/process`);
+    const apiUrl = `${API_BASE_URL}/api/genai/process`;
+    console.log('🚀 VERTEX AI - Making API request to:', apiUrl);
     console.log('Request data:', data);
+    console.log('API_BASE_URL from config:', API_CONFIG.BASE_URL);
+
+    const requestBody = {
+      action: data.action,
+      text: data.text,
+      options: data.options || {}
+    };
     
-    const response = await fetch(`${API_BASE_URL}/api/genai/process`, {
+    console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        action: data.action,
-        text: data.text,
-        options: data.options || {},
-      }),
+      body: JSON.stringify(requestBody)
     });
 
+    console.log('Response status:', response.status, response.statusText);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
+      throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const result = await response.json();
-    console.log('API Response:', result);
-    
+    console.log('✅ API Response success:', result);
     sendResponse(result);
 
   } catch (error) {
-    console.error('Error processing AI request:', error);
+    console.error('❌ Error processing AI request:', error);
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     sendResponse({ 
       error: error instanceof Error ? error.message : 'Unknown error',
       action: data.action 

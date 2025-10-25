@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wand2, Type, FileText, Languages, Sparkles, Search, Upload, Database, MessageSquare } from 'lucide-react';
+import { FileText, Search, Languages, Wand2, Database, Type, Sparkles, Upload, MessageSquare } from 'lucide-react';
 
 // Types
 interface AIAction {
@@ -117,7 +117,11 @@ export function Popup(): JSX.Element {
   };
 
   const processText = async (action: string, targetLanguage?: string) => {
+    console.log('🎯 Popup: processText called with action:', action, 'targetLanguage:', targetLanguage);
+    console.log('🎯 Popup: selectedText:', selectedText);
+    
     if (!selectedText.trim()) {
+      console.log('❌ Popup: No text selected');
       setProcessing({
         isProcessing: false,
         action: null,
@@ -129,6 +133,7 @@ export function Popup(): JSX.Element {
 
     // Pour la traduction, demander la langue si pas fournie
     if (action === 'traduire' && !targetLanguage) {
+      console.log('🔤 Popup: Translation requested, showing language selector');
       setTranslationOptions({
         ...translationOptions,
         showLanguageSelector: true,
@@ -136,6 +141,7 @@ export function Popup(): JSX.Element {
       return;
     }
 
+    console.log('🚀 Popup: Starting processing...');
     setProcessing({
       isProcessing: true,
       action,
@@ -144,6 +150,7 @@ export function Popup(): JSX.Element {
     });
 
     try {
+      console.log('📤 Popup: Sending message to background script');
       // Appel à l'API backend via le background script
       const response = await chrome.runtime.sendMessage({
         type: 'PROCESS_AI_REQUEST',
@@ -154,6 +161,8 @@ export function Popup(): JSX.Element {
           options: targetLanguage ? { targetLanguage } : undefined,
         },
       });
+
+      console.log('📥 Popup: Received response from background:', response);
 
       if (response.error) {
         throw new Error(response.error);
@@ -166,6 +175,7 @@ export function Popup(): JSX.Element {
         error: null,
       });
     } catch (error) {
+      console.error('❌ Popup: Error in processText:', error);
       setProcessing({
         isProcessing: false,
         action: null,
@@ -195,7 +205,37 @@ export function Popup(): JSX.Element {
   };
 
   // Fonctions RAG
+  // Configuration API - MODE PERSISTANT PRODUCTION
   const API_BASE = 'https://magic-button-api-374140035541.europe-west1.run.app';
+
+  // Test simple de connectivity
+  const testConnection = async () => {
+    console.log('🔧 Test de connexion direct depuis popup...');
+    try {
+      // Test 1: Connexion directe
+      const response = await fetch(`${API_BASE}/demo/status`);
+      const data = await response.json();
+      console.log('✅ Test direct réussi:', data);
+      
+      // Test 2: Via background script
+      console.log('🔧 Test via background script...');
+      const bgResponse = await chrome.runtime.sendMessage({
+        type: 'PROCESS_AI_REQUEST',
+        data: {
+          action: 'test',
+          text: 'Test texte',
+          context: '',
+          options: {}
+        }
+      });
+      console.log('📥 Background response:', bgResponse);
+      
+      alert(`✅ Connexion OK!\n\nDirect: ${data.data.currentMode}\nBackground: ${bgResponse ? 'OK' : 'ECHEC'}`);
+    } catch (error) {
+      console.error('❌ Test échoué:', error);
+      alert('❌ Erreur: ' + error);
+    }
+  };
 
   const showNotification = (type: 'success' | 'error', message: string) => {
     setRagState(prev => ({ ...prev, notification: { type, message } }));
@@ -329,12 +369,20 @@ export function Popup(): JSX.Element {
                   </p>
                 )}
               </div>
-              <button
-                onClick={getSelectedText}
-                className="text-xs text-blue-600 hover:text-blue-800"
-              >
-                Actualiser le texte sélectionné
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  onClick={getSelectedText}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  Actualiser le texte sélectionné
+                </button>
+                <button
+                  onClick={testConnection}
+                  className="text-xs text-green-600 hover:text-green-800 bg-green-50 px-2 py-1 rounded"
+                >
+                  🔧 Test Connexion
+                </button>
+              </div>
             </div>
 
             {/* Actions disponibles */}

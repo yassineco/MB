@@ -253,7 +253,7 @@ async function genaiRoutes(fastify, options) {
         return reply.code(200).send({
             success: true,
             data: {
-                currentModel: 'gemini-1.5-pro',
+                currentModel: 'text-bison',
                 actions: ['correct', 'summarize', 'translate', 'optimize', 'analyze'],
                 capabilities: {
                     maxTextLength: 10000,
@@ -271,6 +271,99 @@ async function genaiRoutes(fastify, options) {
                 },
             },
         });
+    });
+    /**
+     * POST /api/genai/process
+     * Route de compatibilité pour l'extension Chrome
+     * Redirige vers la route /action avec le bon format
+     */
+    fastify.post('/process', {
+        schema: {
+            description: 'Process AI request (Chrome extension compatibility)',
+            body: {
+                type: 'object',
+                required: ['action', 'text'],
+                properties: {
+                    action: {
+                        type: 'string',
+                        enum: ['correct', 'summarize', 'translate', 'optimize', 'analyze', 'corriger', 'resumer', 'traduire', 'optimiser', 'analyser'],
+                        description: 'AI action to perform',
+                    },
+                    text: {
+                        type: 'string',
+                        minLength: 1,
+                        maxLength: 10000,
+                        description: 'Text to process',
+                    },
+                    options: {
+                        type: 'object',
+                        properties: {
+                            targetLanguage: { type: 'string' },
+                            maxLength: { type: 'number' },
+                            style: { type: 'string' },
+                            context: { type: 'string' },
+                        },
+                    },
+                },
+            },
+        },
+    }, async (request, reply) => {
+        const perfLogger = (0, logger_1.createPerformanceLogger)('genai-process-endpoint');
+        try {
+            const body = request.body;
+            // Mapping des actions françaises vers anglaises
+            const actionMap = {
+                'corriger': 'correct',
+                'resumer': 'summarize',
+                'traduire': 'translate',
+                'optimiser': 'optimize',
+                'analyser': 'analyze'
+            };
+            const mappedAction = actionMap[body.action] || body.action;
+            fastify.log.info(`Processing extension request: ${body.action} -> ${mappedAction}, text length: ${body.text.length}`);
+            // Validation spécifique selon l'action
+            if ((mappedAction === 'translate' || body.action === 'traduire') && !body.options?.targetLanguage) {
+                return reply.code(400).send({
+                    error: true,
+                    message: 'Target language is required for translation',
+                });
+            }
+            // Traitement avec Gemini
+            const geminiClient = (0, geminiClient_1.getGeminiClient)();
+            const aiRequest = {
+                action: mappedAction,
+                text: body.text,
+                options: body.options,
+            };
+            const result = await geminiClient.processAIRequest(aiRequest);
+            perfLogger.end();
+            // Format de réponse pour l'extension (différent de l'API)
+            return reply.send({
+                success: true,
+                result: result.result,
+                action: result.action,
+                metadata: {
+                    originalLength: result.originalLength,
+                    resultLength: result.resultLength,
+                    processingTime: result.processingTime,
+                },
+            });
+        }
+        catch (error) {
+            perfLogger.end();
+            fastify.log.error({ error }, 'Error processing extension AI request');
+            if (error instanceof zod_1.z.ZodError) {
+                return reply.code(400).send({
+                    error: true,
+                    message: 'Invalid request data',
+                    details: error.errors,
+                });
+            }
+            return reply.code(500).send({
+                error: true,
+                message: 'Internal server error during AI processing',
+            });
+        }
     });
     fastify.log.info('GenAI routes registered');
 }
