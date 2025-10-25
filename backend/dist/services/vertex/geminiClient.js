@@ -204,10 +204,23 @@ Analyse :`;
                     result = await this.summarizeText(request.text, request.options?.maxLength);
                     break;
                 case 'translate':
-                    // Si pas de langue cible spécifiée, détecter la langue et traduire en anglais
-                    const targetLang = request.options?.targetLanguage || 'English';
-                    logger_1.logger.info(`Translation request - Target language: ${targetLang}`);
-                    result = await this.translateText(request.text, targetLang);
+                    // Mapping des codes de langues vers noms complets
+                    const languageMap = {
+                        'en': 'English',
+                        'es': 'Spanish',
+                        'de': 'German',
+                        'it': 'Italian',
+                        'fr': 'French',
+                        'ar': 'Arabic',
+                        'pt': 'Portuguese',
+                        'ru': 'Russian',
+                        'zh': 'Chinese',
+                        'ja': 'Japanese'
+                    };
+                    const targetLang = request.options?.targetLanguage || 'en';
+                    const fullLanguageName = languageMap[targetLang] || targetLang;
+                    logger_1.logger.info(`Translation request - Code: ${targetLang} -> Language: ${fullLanguageName}`);
+                    result = await this.translateText(request.text, fullLanguageName);
                     break;
                 case 'optimize':
                     result = await this.optimizeContent(request.text, request.options?.context);

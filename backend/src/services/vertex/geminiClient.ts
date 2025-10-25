@@ -262,13 +262,28 @@ Analyse :`;
           break;
 
         case 'translate':
-          // Si pas de langue cible spécifiée, détecter la langue et traduire en anglais
-          const targetLang = request.options?.targetLanguage || 'English';
-          logger.info(`Translation request - Target language: ${targetLang}`);
+          // Mapping des codes de langues vers noms complets
+          const languageMap: { [key: string]: string } = {
+            'en': 'English',
+            'es': 'Spanish', 
+            'de': 'German',
+            'it': 'Italian',
+            'fr': 'French',
+            'ar': 'Arabic',
+            'pt': 'Portuguese',
+            'ru': 'Russian',
+            'zh': 'Chinese',
+            'ja': 'Japanese'
+          };
+          
+          const targetLang = request.options?.targetLanguage || 'en';
+          const fullLanguageName = languageMap[targetLang] || targetLang;
+          
+          logger.info(`Translation request - Code: ${targetLang} -> Language: ${fullLanguageName}`);
           
           result = await this.translateText(
             request.text,
-            targetLang
+            fullLanguageName
           );
           break;
 
