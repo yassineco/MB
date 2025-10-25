@@ -127,19 +127,25 @@ Résumé (max ${maxLength} mots) :`;
      * Traduit le texte
      */
     async translateText(text, targetLanguage) {
+        // Normalisation des langues
+        const normalizedLanguage = targetLanguage.toLowerCase().includes('en') ? 'English' : targetLanguage;
         const prompt = `
-Traduis le texte suivant vers ${targetLanguage}.
-Préserve le style, le ton et les nuances.
-Adapte les expressions idiomatiques si nécessaire.
-Réponds uniquement avec la traduction, sans commentaires.
+You are a professional translator. Translate the following text COMPLETELY into ${normalizedLanguage}.
 
-Texte à traduire :
+CRITICAL RULES:
+- Translate EVERY single word - leave NO words in the original language
+- Use natural, fluent ${normalizedLanguage} expressions
+- Maintain professional tone and meaning
+- Convert ALL French/other language words to ${normalizedLanguage}
+- Provide ONLY the complete translation, no explanations
+
+Text to translate:
 "${text}"
 
-Traduction en ${targetLanguage} :`;
+Complete ${normalizedLanguage} translation:`;
         return this.generateContent(prompt, {
-            temperature: 0.2,
-            maxOutputTokens: text.length * 2,
+            temperature: 0.1, // Plus bas pour plus de cohérence
+            maxOutputTokens: text.length * 3,
         });
     }
     /**
@@ -198,10 +204,10 @@ Analyse :`;
                     result = await this.summarizeText(request.text, request.options?.maxLength);
                     break;
                 case 'translate':
-                    if (!request.options?.targetLanguage) {
-                        throw new Error('Target language is required for translation');
-                    }
-                    result = await this.translateText(request.text, request.options.targetLanguage);
+                    // Si pas de langue cible spécifiée, détecter la langue et traduire en anglais
+                    const targetLang = request.options?.targetLanguage || 'English';
+                    logger_1.logger.info(`Translation request - Target language: ${targetLang}`);
+                    result = await this.translateText(request.text, targetLang);
                     break;
                 case 'optimize':
                     result = await this.optimizeContent(request.text, request.options?.context);
