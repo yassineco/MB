@@ -1,33 +1,82 @@
-# 🧪 Guide de Test - Magic Button avec RAG
+# 🧪 Guide de Test - Magic Button RAG System
+## Version finale - 25 Octobre 2025
 
-## 📋 Instructions pour tester l'extension
+### 🎯 **Objectif**
+Valider le fonctionnement complet du système Magic Button avec traduction multilingue et RAG intelligent.
 
-### 1. **Chargement de l'extension dans Chrome**
+---
 
-1. Ouvrez Chrome et allez à `chrome://extensions/`
-2. Activez le "Mode développeur" (en haut à droite)
-3. Cliquez sur "Charger l'extension non empaquetée"
-4. Sélectionnez le dossier : `/media/yassine/IA/Projects/konecta/magic_button_formation/extension/dist`
-5. L'extension devrait apparaître avec l'icône Magic Button
+## 🚀 **Tests de Validation**
 
-### 2. **Test de l'onglet "Actions IA" (fonctionnalités existantes)**
+### **1. 🌍 Test de Traduction Multilingue**
 
-1. Allez sur une page web avec du texte
-2. Sélectionnez du texte sur la page
-3. Cliquez sur l'icône Magic Button dans la barre d'outils
-4. Vérifiez que vous êtes sur l'onglet "Actions IA"
-5. Testez les 4 actions : Corriger, Résumer, Traduire, Optimiser
+#### **Préparation :**
+1. Ouvrir une page web avec du texte français
+2. Recharger l'extension Chrome (chrome://extensions/)
+3. Sélectionner du texte français complexe
 
-### 3. **Test de l'onglet "Assistant RAG" (nouvelles fonctionnalités)**
+#### **Texte de test recommandé :**
+```
+Antonio Guterres a également évoqué les résultats du recensement conduit par les autorités marocaines en septembre 2024, et qui fait ressortir une augmentation importante de la population vivant dans les Provinces du Sud du Royaume.
+```
 
-#### 🔄 **Test Upload de Document**
-1. Sélectionnez du texte sur une page web
-2. Cliquez sur l'onglet "Assistant RAG"
-3. Cliquez sur "Upload Sélection"
-4. Vérifiez le message de succès
+#### **Procédure de test :**
+1. **Sélectionner le texte** sur la page
+2. **Clic droit** → "Traduire avec IA"
+3. **Vérifier l'interface de sélection** de langue apparaît
+4. **Tester chaque langue** :
+   - 🇬🇧 **Anglais** : Vérifier fluidité et naturalité
+   - 🇪🇸 **Espagnol** : Contrôler vocabulaire adapté
+   - 🇩🇪 **Allemand** : Valider structure grammaticale
+   - 🇮🇹 **Italien** : Confirmer expressions idiomatiques
+   - 🇸🇦 **Arabe** : Vérifier format et translittération
 
-#### 🔍 **Test Recherche Sémantique**
-1. Dans le champ "Posez votre question...", tapez une requête
+#### **Résultats attendus :**
+- ✅ Interface de sélection de langue avec drapeaux
+- ✅ Traduction fluide et naturelle (pas mot-à-mot)
+- ✅ Vocabulaire contextuel approprié
+- ✅ Format professionnel avec notes explicatives
+
+### **2. 🧠 Test RAG Intelligent**
+
+#### **Préparation :**
+1. Ouvrir l'extension Magic Button
+2. Aller à l'onglet "Assistant RAG"
+3. Uploader un document contenant le texte de test
+
+#### **Document de test :**
+Créer un fichier texte avec :
+```
+Antonio Guterres a également évoqué les résultats du recensement conduit par les autorités marocaines en septembre 2024. Cette indication, forte en sens, est révélatrice de l'attractivité et de la qualité de vie dans ces Provinces marocaines, qui favorisent l'installation d'un plus grand nombre de personnes, de même que l'augmentation du taux de natalité.
+```
+
+#### **Tests de requêtes contextuelles :**
+
+**Test 1 : Recherche "antonio"**
+- **Requête** : `antonio`
+- **Résultat attendu** : Réponse politique/institutionnelle avec vocabulaire officiel
+- **Validation** : Mentions de "déclarations", "autorités", "recensement marocain"
+
+**Test 2 : Recherche "population"**
+- **Requête** : `population`
+- **Résultat attendu** : Analyse démographique experte
+- **Validation** : Vocabulaire "évolution", "répartition", "tendances", "variations"
+
+**Test 3 : Recherche "recensement"**
+- **Requête** : `recensement`
+- **Résultat attendu** : Réponse méthodologique/technique
+- **Validation** : Termes "collecte", "analyses comparatives", "données structurées"
+
+**Test 4 : Recherche générique**
+- **Requête** : `test`
+- **Résultat attendu** : Réponse générale avec recommandations
+- **Validation** : Format structuré avec sections claires
+
+#### **Critères de réussite :**
+- ✅ **Adaptation contextuelle** : Vocabulaire spécialisé selon le domaine
+- ✅ **Structure professionnelle** : Sections organisées (Contexte, Points clés, Sources)
+- ✅ **Ton approprié** : Ajustement selon le type de requête
+- ✅ **Traçabilité** : Références aux documents sources
 2. Cliquez sur "Chercher"
 3. Vérifiez les résultats affichés
 
