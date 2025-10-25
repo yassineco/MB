@@ -6,13 +6,16 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.vectorDatabaseService = exports.VectorDatabaseService = void 0;
 const logger_1 = require("../../logger");
+const vector_db_real_1 = require("./vector-db-real");
 /**
  * Service de base de données vectorielle pour RAG
  */
 class VectorDatabaseService {
     collectionName;
+    realService;
     constructor() {
         this.collectionName = process.env.FIRESTORE_VECTORS_COLLECTION || 'rag_vectors';
+        this.realService = new vector_db_real_1.RealVectorDatabaseService();
     }
     /**
      * Stockage d'un chunk avec son embedding
@@ -43,8 +46,8 @@ class VectorDatabaseService {
             contentLength: chunk.content.length,
         }, 'Storing vector chunk');
         try {
-            // Simulation du stockage Firestore
-            await this.simulateFirestoreWrite(vectorDoc);
+            // Stockage réel via service dédié
+            await this.realService.storeChunk(chunk, embedding);
             logger_1.logger.info({
                 action: 'vector_chunk_stored',
                 chunkId: chunk.id,
@@ -92,8 +95,8 @@ class VectorDatabaseService {
                 createdAt: chunk.createdAt,
                 updatedAt: new Date(),
             }));
-            // Simulation du stockage en lot Firestore
-            await this.simulateFirestoreBatchWrite(vectorDocs);
+            // Stockage en lot réel via service dédié
+            await this.realService.storeBatch(chunks, embeddings);
             logger_1.logger.info({
                 action: 'vector_batch_stored',
                 batchSize: chunks.length,
@@ -127,8 +130,8 @@ class VectorDatabaseService {
             searchOptions,
         }, 'Starting vector similarity search');
         try {
-            // Simulation de la recherche vectorielle
-            const results = await this.simulateVectorSearch(queryEmbedding, searchOptions);
+            // Recherche vectorielle réelle via service dédié
+            const results = await this.realService.searchSimilar(queryEmbedding, searchOptions);
             logger_1.logger.info({
                 action: 'vector_search_completed',
                 resultsCount: results.length,
@@ -155,7 +158,10 @@ class VectorDatabaseService {
             chunkId,
         }, 'Retrieving vector chunk');
         try {
-            const chunk = await this.simulateFirestoreRead(chunkId);
+            // Pour l'instant on cherche dans tous les documents du chunk
+            // TODO: Ajouter getChunk au service réel
+            const allChunks = await this.realService.getDocumentChunks('');
+            const chunk = allChunks.find(c => c.chunkId === chunkId) || null;
             if (chunk) {
                 logger_1.logger.info({
                     action: 'vector_chunk_retrieved',
@@ -189,7 +195,7 @@ class VectorDatabaseService {
             documentId,
         }, 'Retrieving document chunks');
         try {
-            const chunks = await this.simulateFirestoreQuery(documentId);
+            const chunks = await this.realService.getDocumentChunks(documentId);
             logger_1.logger.info({
                 action: 'document_chunks_retrieved',
                 documentId,
@@ -215,12 +221,11 @@ class VectorDatabaseService {
             documentId,
         }, 'Deleting document vectors');
         try {
-            // Simulation de la suppression des vecteurs
-            const deletedCount = await this.simulateFirestoreDelete(documentId);
+            // Suppression réelle via service dédié
+            await this.realService.deleteDocument(documentId);
             logger_1.logger.info({
                 action: 'document_vectors_deleted',
                 documentId,
-                deletedCount,
             }, 'Document vectors deleted successfully');
         }
         catch (error) {
@@ -240,7 +245,7 @@ class VectorDatabaseService {
             action: 'get_index_stats',
         }, 'Retrieving index statistics');
         try {
-            const stats = await this.simulateIndexStats();
+            const stats = await this.realService.getIndexStats();
             logger_1.logger.info({
                 action: 'index_stats_retrieved',
                 stats,
@@ -254,168 +259,6 @@ class VectorDatabaseService {
             }, 'Failed to retrieve index statistics');
             throw new Error(`Failed to retrieve index statistics: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-    }
-    // === Méthodes de simulation pour développement ===
-    /**
-     * Simulation de l'écriture Firestore
-     */
-    async simulateFirestoreWrite(vectorDoc) {
-        // Simuler un délai d'écriture
-        await new Promise(resolve => setTimeout(resolve, 50));
-        // Simuler une validation des données
-        if (!vectorDoc.id || !vectorDoc.content || !vectorDoc.embedding.length) {
-            throw new Error('Invalid vector document data');
-        }
-        // L'écriture est simulée comme réussie
-    }
-    /**
-     * Simulation de l'écriture en lot Firestore
-     */
-    async simulateFirestoreBatchWrite(vectorDocs) {
-        // Simuler un délai d'écriture en lot
-        await new Promise(resolve => setTimeout(resolve, 100));
-        // Simuler une limite de lot Firestore (500 opérations)
-        if (vectorDocs.length > 500) {
-            throw new Error('Batch size exceeds Firestore limit of 500 operations');
-        }
-        // Valider chaque document
-        for (const doc of vectorDocs) {
-            if (!doc.id || !doc.content || !doc.embedding.length) {
-                throw new Error('Invalid vector document in batch');
-            }
-        }
-        // L'écriture en lot est simulée comme réussie
-    }
-    /**
-     * Simulation de la recherche vectorielle
-     */
-    async simulateVectorSearch(queryEmbedding, options) {
-        // Simuler un délai de recherche
-        await new Promise(resolve => setTimeout(resolve, 150));
-        // Simuler des documents vectoriels
-        const mockDocs = this.generateMockVectorDocuments(20);
-        // Calculer les similarités
-        const results = mockDocs
-            .map((doc, index) => ({
-            document: doc,
-            similarity: this.calculateSimulatedSimilarity(queryEmbedding, doc.embedding),
-            rank: index + 1,
-        }))
-            .filter(result => result.similarity >= options.threshold)
-            .sort((a, b) => b.similarity - a.similarity)
-            .slice(0, options.limit);
-        return results;
-    }
-    /**
-     * Simulation de la lecture Firestore
-     */
-    async simulateFirestoreRead(chunkId) {
-        // Simuler un délai de lecture
-        await new Promise(resolve => setTimeout(resolve, 30));
-        // Simuler une recherche par ID
-        if (chunkId.includes('nonexistent')) {
-            return null;
-        }
-        // Retourner un document simulé
-        return this.generateMockVectorDocument(chunkId);
-    }
-    /**
-     * Simulation de la requête Firestore
-     */
-    async simulateFirestoreQuery(documentId) {
-        // Simuler un délai de requête
-        await new Promise(resolve => setTimeout(resolve, 80));
-        // Générer des chunks simulés pour le document
-        const chunkCount = Math.floor(Math.random() * 10) + 3; // 3-12 chunks
-        const chunks = [];
-        for (let i = 0; i < chunkCount; i++) {
-            chunks.push(this.generateMockVectorDocument(`${documentId}_chunk_${i}`, documentId));
-        }
-        return chunks;
-    }
-    /**
-     * Simulation de la suppression Firestore
-     */
-    async simulateFirestoreDelete(documentId) {
-        // Simuler un délai de suppression
-        await new Promise(resolve => setTimeout(resolve, 100));
-        // Simuler le nombre de documents supprimés
-        return Math.floor(Math.random() * 10) + 5; // 5-14 chunks supprimés
-    }
-    /**
-     * Simulation des statistiques d'index
-     */
-    async simulateIndexStats() {
-        // Simuler un délai de calcul des stats
-        await new Promise(resolve => setTimeout(resolve, 200));
-        const now = new Date();
-        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        return {
-            totalDocuments: 42,
-            totalChunks: 287,
-            averageEmbeddingDimension: 768,
-            languages: ['en', 'fr', 'es'],
-            oldestDocument: oneWeekAgo,
-            newestDocument: now,
-        };
-    }
-    // === Méthodes utilitaires ===
-    /**
-     * Génération d'un document vectoriel simulé
-     */
-    generateMockVectorDocument(chunkId, documentId) {
-        const docId = documentId || `doc_${Math.random().toString(36).substring(2, 8)}`;
-        const chunkIndex = parseInt(chunkId.split('_').pop() || '0');
-        return {
-            id: chunkId,
-            documentId: docId,
-            chunkId,
-            content: `This is simulated content for chunk ${chunkId}. ` +
-                `Lorem ipsum dolor sit amet, consectetur adipiscing elit. ` +
-                `Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`,
-            embedding: this.generateSimulatedEmbedding(768),
-            metadata: {
-                documentTitle: `Document ${docId}`,
-                chunkIndex,
-                tokenCount: 75 + Math.floor(Math.random() * 50),
-                wordCount: 25 + Math.floor(Math.random() * 20),
-                language: Math.random() > 0.5 ? 'en' : 'fr',
-            },
-            createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-            updatedAt: new Date(),
-        };
-    }
-    /**
-     * Génération de plusieurs documents vectoriels simulés
-     */
-    generateMockVectorDocuments(count) {
-        const docs = [];
-        for (let i = 0; i < count; i++) {
-            const chunkId = `mock_chunk_${i}`;
-            docs.push(this.generateMockVectorDocument(chunkId));
-        }
-        return docs;
-    }
-    /**
-     * Génération d'un embedding simulé
-     */
-    generateSimulatedEmbedding(dimension) {
-        const embedding = [];
-        for (let i = 0; i < dimension; i++) {
-            // Générer des valeurs entre -1 et 1 avec distribution normale simulée
-            embedding.push((Math.random() - 0.5) * 2);
-        }
-        return embedding;
-    }
-    /**
-     * Calcul de similarité simulé
-     */
-    calculateSimulatedSimilarity(embedding1, embedding2) {
-        // Simuler une similarité cosinus avec variation aléatoire
-        const baseSimilarity = 0.3 + Math.random() * 0.6; // Entre 0.3 et 0.9
-        // Ajouter une légère variation basée sur la "distance" des embeddings
-        const variation = (Math.random() - 0.5) * 0.2;
-        return Math.max(0, Math.min(1, baseSimilarity + variation));
     }
 }
 exports.VectorDatabaseService = VectorDatabaseService;

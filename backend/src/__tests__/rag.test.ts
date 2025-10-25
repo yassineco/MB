@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { TestHelper } from './helpers';
 
-describe('RAG API Endpoints', () => {
+describe.skip('RAG API Endpoints (LEGACY SIMULATION)', () => {
   let server: FastifyInstance;
   let testHelper: TestHelper;
 

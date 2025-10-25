@@ -10,7 +10,7 @@ import { logger } from '../logger';
 interface DemoRequest {
   Body: {
     query?: string;
-    mode?: 'simulation' | 'hybrid_embeddings' | 'hybrid_storage' | 'production';
+    mode?: 'production';
     action?: 'search' | 'toggle_mode' | 'status' | 'test_connections' | 'cost_analysis';
   };
 }
@@ -63,12 +63,13 @@ export const demoRoutes = async (fastify: FastifyInstance) => {
     // Bascule de mode en temps réel
     fastify.post('/toggle-mode', async (request: FastifyRequest<DemoRequest>, reply: FastifyReply) => {
       try {
-        const { mode = 'simulation' } = request.body;
+        const { mode = 'production' } = request.body;
         
-        if (!['simulation', 'hybrid_embeddings', 'hybrid_storage', 'production'].includes(mode)) {
+        // Force le mode production uniquement
+        if (mode !== 'production') {
           return reply.status(400).send({
             success: false,
-            error: 'Invalid mode. Must be: simulation, hybrid_embeddings, hybrid_storage, or production',
+            error: 'Only production mode is supported. Simulation modes have been removed.',
           });
         }
 
@@ -166,17 +167,11 @@ export const demoRoutes = async (fastify: FastifyInstance) => {
           embeddings_per_day: 10,
         };
 
-        // Calculs de coûts
+        // Calculs de coûts (mode production uniquement)
         const costAnalysis = {
           currentMode,
           estimatedUsage,
           monthlyCosts: {
-            simulation: {
-              embeddings: 0,
-              storage: 0,
-              operations: 0,
-              total: 0,
-            },
             production: {
               embeddings: estimatedUsage.embeddings_per_day * 30 * 0.0001, // $0.0001 per 1K tokens
               storage: (estimatedUsage.chunks * 0.001) * 0.18, // $0.18 per GB/month
@@ -184,8 +179,7 @@ export const demoRoutes = async (fastify: FastifyInstance) => {
               total: 0,
             },
           },
-          annualSavings: 0,
-          roi: 'Immediate value through real persistence',
+          roi: 'Immediate value through real Vertex AI persistence',
         };
 
         // Calculer totaux
@@ -193,9 +187,6 @@ export const demoRoutes = async (fastify: FastifyInstance) => {
           costAnalysis.monthlyCosts.production.embeddings +
           costAnalysis.monthlyCosts.production.storage +
           costAnalysis.monthlyCosts.production.operations;
-
-        costAnalysis.annualSavings = 
-          (100 - costAnalysis.monthlyCosts.production.total) * 12; // Estimation gains productivité
 
         return {
           success: true,
