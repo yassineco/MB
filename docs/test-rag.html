@@ -571,35 +571,54 @@
                 const limit = document.getElementById('searchLimit').value;
                 const threshold = document.getElementById('searchThreshold').value;
 
+                // Validation côté client
+                if (!query.trim()) {
+                    throw new Error('Veuillez saisir une question');
+                }
+
                 const params = new URLSearchParams({
-                    q: query,
+                    q: query.trim(),
                     limit: limit,
                     threshold: threshold
                 });
 
+                console.log('Recherche:', `${API_BASE}/rag/search?${params}`);
                 const response = await fetch(`${API_BASE}/rag/search?${params}`);
                 const data = await response.json();
                 
+                console.log('Réponse recherche:', data);
+                
                 if (response.ok && data.success) {
                     let resultsHtml = `
-                        <h3>🎯 ${data.totalResults} résultat(s) trouvé(s)</h3>
-                        <p><strong>Temps de traitement:</strong> ${data.processingTimeMs}ms</p>
+                        <h3>🎯 ${data.totalResults || 0} résultat(s) trouvé(s)</h3>
+                        <p><strong>Temps de traitement:</strong> ${data.processingTimeMs || 'N/A'}ms</p>
                     `;
                     
-                    if (data.results.length > 0) {
+                    if (data.results && Array.isArray(data.results) && data.results.length > 0) {
                         resultsHtml += '<div class="sources">';
                         data.results.forEach((item, index) => {
-                            const similarity = Math.round(item.similarity * 100);
-                            resultsHtml += `
-                                <div class="source-item">
-                                    <div class="source-meta">
-                                        <strong>Résultat #${index + 1}</strong> - 
-                                        Similarité: ${similarity}% - 
-                                        Document: ${item.document.metadata.documentTitle || item.document.documentId}
+                            try {
+                                const similarity = Math.round((item.similarity || 0) * 100);
+                                const fileName = item.metadata?.fileName || item.metadata?.documentId || 'Document inconnu';
+                                const content = item.content || 'Contenu non disponible';
+                                
+                                resultsHtml += `
+                                    <div class="source-item">
+                                        <div class="source-meta">
+                                            <strong>Résultat #${index + 1}</strong> - 
+                                            Similarité: ${similarity}% - 
+                                            Document: ${fileName}
+                                        </div>
+                                        <div class="source-content">${content}</div>
+                                        <div class="confidence-bar">
+                                            <div class="confidence-fill" style="width: ${similarity}%"></div>
+                                        </div>
                                     </div>
-                                    <div class="source-content">${item.document.content}</div>
-                                </div>
-                            `;
+                                `;
+                            } catch (itemError) {
+                                console.error('Erreur traitement item:', itemError, item);
+                                resultsHtml += `<div class="source-item">Erreur affichage résultat #${index + 1}</div>`;
+                            }
                         });
                         resultsHtml += '</div>';
                     }
@@ -662,36 +681,44 @@
                 });
 
                 const data = await response.json();
+                console.log('Réponse génération:', data);
                 
                 if (response.ok && data.success) {
-                    const confidence = Math.round(data.confidence * 100);
                     let responseHtml = `
                         <h3>🤖 Réponse générée</h3>
                         <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e1e5e9; margin: 15px 0;">
-                            ${data.response.replace(/\n/g, '<br>')}
+                            ${(data.response || 'Aucune réponse générée').replace(/\n/g, '<br>')}
                         </div>
-                        <p><strong>Confiance:</strong> ${confidence}%</p>
-                        <div class="confidence-bar">
-                            <div class="confidence-fill" style="width: ${confidence}%"></div>
-                        </div>
-                        <p><strong>Sources utilisées:</strong> ${data.sourcesCount}</p>
-                        <p><strong>Temps de traitement:</strong> ${data.processingTimeMs}ms</p>
+                        <p><strong>Tokens utilisés:</strong> ${data.tokensUsed || 'N/A'}</p>
+                        <p><strong>Sources utilisées:</strong> ${data.sources?.length || 0}</p>
+                        <p><strong>Temps de traitement:</strong> ${data.processingTimeMs || 'N/A'}ms</p>
                     `;
                     
-                    if (data.sources && data.sources.length > 0) {
+                    if (data.sources && Array.isArray(data.sources) && data.sources.length > 0) {
                         responseHtml += '<div class="sources"><h4>Sources consultées:</h4>';
                         data.sources.forEach((source, index) => {
-                            const similarity = Math.round(source.similarity * 100);
-                            responseHtml += `
-                                <div class="source-item">
-                                    <div class="source-meta">
-                                        <strong>Source #${index + 1}</strong> - 
-                                        Pertinence: ${similarity}% - 
-                                        Document: ${source.document.metadata.documentTitle || source.document.documentId}
+                            try {
+                                const similarity = Math.round((source.similarity || 0) * 100);
+                                const fileName = source.metadata?.fileName || source.metadata?.documentId || 'Document inconnu';
+                                const content = source.content || 'Contenu non disponible';
+                                
+                                responseHtml += `
+                                    <div class="source-item">
+                                        <div class="source-meta">
+                                            <strong>Source #${index + 1}</strong> - 
+                                            Pertinence: ${similarity}% - 
+                                            Document: ${fileName}
+                                        </div>
+                                        <div class="source-content">${content.substring(0, 200)}...</div>
+                                        <div class="confidence-bar">
+                                            <div class="confidence-fill" style="width: ${similarity}%"></div>
+                                        </div>
                                     </div>
-                                    <div class="source-content">${source.document.content.substring(0, 200)}...</div>
-                                </div>
-                            `;
+                                `;
+                            } catch (sourceError) {
+                                console.error('Erreur traitement source:', sourceError, source);
+                                responseHtml += `<div class="source-item">Erreur affichage source #${index + 1}</div>`;
+                            }
                         });
                         responseHtml += '</div>';
                     }

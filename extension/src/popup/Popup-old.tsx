@@ -77,12 +77,6 @@ export function Popup(): JSX.Element {
     error: null,
   });
 
-  // Options pour la traduction
-  const [translationOptions, setTranslationOptions] = useState({
-    targetLanguage: 'en',
-    showLanguageSelector: false,
-  });
-
   // État RAG
   const [ragState, setRagState] = useState({
     documents: [],
@@ -91,7 +85,6 @@ export function Popup(): JSX.Element {
     isUploading: false,
     isSearching: false,
     isGenerating: false,
-    notification: null as { type: 'success' | 'error'; message: string } | null,
   });
 
   // Récupérer le texte sélectionné au chargement
@@ -116,22 +109,13 @@ export function Popup(): JSX.Element {
     }
   };
 
-  const processText = async (action: string, targetLanguage?: string) => {
+  const processText = async (action: string, _targetLanguage?: string) => {
     if (!selectedText.trim()) {
       setProcessing({
         isProcessing: false,
         action: null,
         result: null,
         error: 'Aucun texte sélectionné. Sélectionnez du texte sur la page.',
-      });
-      return;
-    }
-
-    // Pour la traduction, demander la langue si pas fournie
-    if (action === 'traduire' && !targetLanguage) {
-      setTranslationOptions({
-        ...translationOptions,
-        showLanguageSelector: true,
       });
       return;
     }
@@ -151,7 +135,6 @@ export function Popup(): JSX.Element {
           action,
           text: selectedText,
           context: '',
-          options: targetLanguage ? { targetLanguage } : undefined,
         },
       });
 
@@ -196,13 +179,6 @@ export function Popup(): JSX.Element {
 
   // Fonctions RAG
   const API_BASE = 'https://magic-button-api-374140035541.europe-west1.run.app';
-
-  const showNotification = (type: 'success' | 'error', message: string) => {
-    setRagState(prev => ({ ...prev, notification: { type, message } }));
-    setTimeout(() => {
-      setRagState(prev => ({ ...prev, notification: null }));
-    }, 3000);
-  };
 
   const uploadDocument = async (content: string, fileName: string) => {
     setRagState(prev => ({ ...prev, isUploading: true }));
@@ -338,7 +314,7 @@ export function Popup(): JSX.Element {
             </div>
 
             {/* Actions disponibles */}
-            {selectedText && !processing.isProcessing && !processing.result && !processing.error && !translationOptions.showLanguageSelector && (
+            {selectedText && !processing.isProcessing && !processing.result && !processing.error && (
               <div className="space-y-3">
                 <h3 className="text-sm font-medium text-gray-700">Choisissez une action :</h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -355,48 +331,6 @@ export function Popup(): JSX.Element {
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Sélecteur de langue pour la traduction */}
-            {translationOptions.showLanguageSelector && (
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-gray-700">Choisissez la langue de destination :</h3>
-                <div className="space-y-2">
-                  {[
-                    { code: 'en', name: '🇬🇧 Anglais', flag: '🇬🇧' },
-                    { code: 'es', name: '🇪🇸 Espagnol', flag: '🇪🇸' },
-                    { code: 'de', name: '🇩🇪 Allemand', flag: '🇩🇪' },
-                    { code: 'it', name: '🇮🇹 Italien', flag: '🇮🇹' },
-                    { code: 'ar', name: '🇸🇦 Arabe', flag: '🇸🇦' },
-                  ].map((language) => (
-                    <button
-                      key={language.code}
-                      onClick={() => {
-                        setTranslationOptions({
-                          targetLanguage: language.code,
-                          showLanguageSelector: false,
-                        });
-                        processText('traduire', language.code);
-                      }}
-                      className="w-full p-3 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded-lg transition-colors"
-                    >
-                      <div className="flex items-center justify-center gap-2">
-                        <Languages className="w-4 h-4" />
-                        <span>{language.name}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setTranslationOptions({
-                    ...translationOptions,
-                    showLanguageSelector: false,
-                  })}
-                  className="w-full p-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm rounded-lg transition-colors"
-                >
-                  Annuler
-                </button>
               </div>
             )}
 
@@ -457,34 +391,21 @@ export function Popup(): JSX.Element {
             <div className="text-center">
               <Database className="w-12 h-12 text-blue-600 mx-auto mb-2" />
               <h3 className="text-lg font-semibold text-gray-800">Assistant RAG</h3>
-              <p className="text-sm text-gray-600">
-                Uploadez des documents et posez vos questions
-              </p>
-              {ragState.documents.length > 0 && (
-                <div className="mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full inline-block">
-                  📚 {ragState.documents.length} document(s) dans la base
-                </div>
-              )}
+              <p className="text-sm text-gray-600">Uploadez des documents et posez vos questions</p>
             </div>
 
             {/* Upload de document */}
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-gray-700">📄 Upload Document</h4>
-              {selectedText && (
-                <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                  <strong>Texte prêt :</strong> {selectedText.substring(0, 50)}
-                  {selectedText.length > 50 ? '...' : ''} ({selectedText.length} caractères)
-                </div>
-              )}
               <div className="flex gap-2">
                 <button
                   onClick={() => {
                     if (selectedText) {
                       uploadDocument(selectedText, `selection_${Date.now()}.txt`)
-                        .then(() => showNotification('success', 'Document uploadé avec succès!'))
-                        .catch(err => showNotification('error', `Erreur: ${err.message}`));
+                        .then(() => alert('Document uploadé avec succès!'))
+                        .catch(err => alert('Erreur: ' + err.message));
                     } else {
-                      showNotification('error', 'Sélectionnez du texte à uploader');
+                      alert('Sélectionnez du texte à uploader');
                     }
                   }}
                   disabled={!selectedText || ragState.isUploading}
@@ -511,8 +432,8 @@ export function Popup(): JSX.Element {
                   onClick={() => {
                     if (ragState.query.trim()) {
                       searchDocuments(ragState.query)
-                        .then(results => showNotification('success', `${results.length} résultats trouvés`))
-                        .catch(err => showNotification('error', `Erreur: ${err.message}`));
+                        .then(results => alert(`${results.length} résultats trouvés`))
+                        .catch(err => alert('Erreur: ' + err.message));
                     }
                   }}
                   disabled={!ragState.query.trim() || ragState.isSearching}
@@ -592,17 +513,6 @@ export function Popup(): JSX.Element {
             {processing.action === 'rag' && processing.error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-700">{processing.error}</p>
-              </div>
-            )}
-
-            {/* Notifications RAG */}
-            {ragState.notification && (
-              <div className={`p-3 rounded-lg border ${
-                ragState.notification.type === 'success' 
-                  ? 'bg-green-50 border-green-200 text-green-700'
-                  : 'bg-red-50 border-red-200 text-red-700'
-              }`}>
-                <p className="text-sm">{ragState.notification.message}</p>
               </div>
             )}
           </div>

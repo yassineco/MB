@@ -62,6 +62,7 @@ const API_BASE_URL = 'https://magic-button-api-374140035541.europe-west1.run.app
 async function handleAIRequest(data: any, sendResponse: (response: any) => void) {
   try {
     console.log('Making API request to:', `${API_BASE_URL}/api/genai/process`);
+    console.log('Request data:', data);
     
     const response = await fetch(`${API_BASE_URL}/api/genai/process`, {
       method: 'POST',
@@ -71,9 +72,7 @@ async function handleAIRequest(data: any, sendResponse: (response: any) => void)
       body: JSON.stringify({
         action: data.action,
         text: data.text,
-        options: {
-          context: data.context || '',
-        },
+        options: data.options || {},
       }),
     });
 
