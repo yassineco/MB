@@ -118,7 +118,7 @@ async function createServer(): Promise<FastifyInstance> {
         properties: {
           action: {
             type: 'string',
-            enum: ['corriger', 'résumer', 'traduire', 'optimiser']
+            enum: ['corriger', 'résumer', 'traduire', 'optimiser', 'analyser', 'resumer', 'correct', 'summarize', 'translate', 'optimize', 'analyze']
           },
           text: {
             type: 'string',
