@@ -245,6 +245,7 @@ export function Popup(): JSX.Element {
   };
 
   const uploadDocument = async (content: string, fileName: string) => {
+    console.log('📤 [RAG] Starting upload:', fileName, content.length, 'chars');
     setRagState(prev => ({ ...prev, isUploading: true }));
     
     try {
@@ -259,7 +260,14 @@ export function Popup(): JSX.Element {
         })
       });
       
+      console.log('📤 [RAG] Upload response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
+      console.log('📤 [RAG] Upload response:', JSON.stringify(data).substring(0, 200));
       
       if (data.success) {
         setRagState(prev => ({ 
@@ -267,35 +275,71 @@ export function Popup(): JSX.Element {
           isUploading: false,
           documents: [...prev.documents, data] as any
         }));
+        console.log('✅ [RAG] Upload successful:', data.documentId);
         return data;
       } else {
         throw new Error(data.message || 'Erreur upload');
       }
     } catch (error) {
+      console.error('❌ [RAG] Upload error:', error);
       setRagState(prev => ({ ...prev, isUploading: false }));
       throw error;
     }
   };
 
   const searchDocuments = async (query: string) => {
-    setRagState(prev => ({ ...prev, isSearching: true }));
+    console.log('🔍 [RAG] Starting search for:', query);
+    setRagState(prev => ({ ...prev, isSearching: true, searchResults: [] }));
     
     try {
       const response = await fetch(`${API_BASE}/rag/search?q=${encodeURIComponent(query)}&limit=5`);
+      console.log('🔍 [RAG] Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
+      console.log('🔍 [RAG] Response data:', JSON.stringify(data).substring(0, 200));
       
       if (data.success) {
+        // DEFENSIVE: Normalize results with multiple fallbacks
+        const normalized = (Array.isArray(data.results) ? data.results : []).map((r: any, idx: number) => {
+          try {
+            const content = r?.document?.content || r?.content || '';
+            const similarity = typeof r?.similarity === 'number' ? r.similarity : 0;
+            
+            return {
+              content: String(content),
+              similarity: similarity,
+              rank: r?.rank || idx + 1,
+              document: r?.document || { content }
+            };
+          } catch (err) {
+            console.error('🔍 [RAG] Error normalizing result:', err, r);
+            return {
+              content: '',
+              similarity: 0,
+              rank: idx + 1,
+              document: { content: '' }
+            };
+          }
+        });
+
+        console.log('🔍 [RAG] Normalized results:', normalized.length, 'items');
+        
         setRagState(prev => ({ 
           ...prev, 
           isSearching: false,
-          searchResults: data.results
+          searchResults: normalized
         }));
-        return data.results;
+        return normalized;
       } else {
         throw new Error(data.message || 'Erreur recherche');
       }
     } catch (error) {
-      setRagState(prev => ({ ...prev, isSearching: false }));
+      console.error('🔍 [RAG] Search error:', error);
+      setRagState(prev => ({ ...prev, isSearching: false, searchResults: [] }));
       throw error;
     }
   };
@@ -526,13 +570,19 @@ export function Popup(): JSX.Element {
               )}
               <div className="flex gap-2">
                 <button
-                  onClick={() => {
-                    if (selectedText) {
-                      uploadDocument(selectedText, `selection_${Date.now()}.txt`)
-                        .then(() => showNotification('success', 'Document uploadé avec succès!'))
-                        .catch(err => showNotification('error', `Erreur: ${err.message}`));
-                    } else {
-                      showNotification('error', 'Sélectionnez du texte à uploader');
+                  onClick={async () => {
+                    try {
+                      console.log('🔍 [RAG] Search button clicked');
+                      if (!selectedText) {
+                        showNotification('error', 'Sélectionnez du texte à uploader');
+                        return;
+                      }
+                      
+                      const result = await uploadDocument(selectedText, `selection_${Date.now()}.txt`);
+                      showNotification('success', `Document uploadé! ID: ${result.documentId}`);
+                    } catch (err: any) {
+                      console.error('❌ [RAG] Upload failed:', err);
+                      showNotification('error', `Erreur upload: ${err.message || 'Inconnue'}`);
                     }
                   }}
                   disabled={!selectedText || ragState.isUploading}
@@ -556,11 +606,19 @@ export function Popup(): JSX.Element {
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
                 <button
-                  onClick={() => {
-                    if (ragState.query.trim()) {
-                      searchDocuments(ragState.query)
-                        .then(results => showNotification('success', `${results.length} résultats trouvés`))
-                        .catch(err => showNotification('error', `Erreur: ${err.message}`));
+                  onClick={async () => {
+                    try {
+                      console.log('🔍 [RAG] Search button clicked, query:', ragState.query);
+                      if (!ragState.query.trim()) {
+                        showNotification('error', 'Entrez une requête de recherche');
+                        return;
+                      }
+                      
+                      const results = await searchDocuments(ragState.query);
+                      showNotification('success', `${results.length} résultat(s) trouvé(s)`);
+                    } catch (err: any) {
+                      console.error('❌ [RAG] Search failed:', err);
+                      showNotification('error', `Erreur recherche: ${err.message || 'Inconnue'}`);
                     }
                   }}
                   disabled={!ragState.query.trim() || ragState.isSearching}
@@ -610,12 +668,27 @@ export function Popup(): JSX.Element {
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-gray-700">Résultats:</h4>
                 <div className="max-h-32 overflow-y-auto space-y-1">
-                  {ragState.searchResults.map((result: any, index: number) => (
-                    <div key={index} className="p-2 bg-gray-50 rounded text-xs">
-                      <div className="text-gray-600">Similarité: {Math.round(result.similarity * 100)}%</div>
-                      <div className="text-gray-800">{result.content.substring(0, 100)}...</div>
-                    </div>
-                  ))}
+                  {ragState.searchResults.map((result: any, index: number) => {
+                    try {
+                      const content = result?.content || result?.document?.content || '';
+                      const similarity = result?.similarity || 0;
+                      const displayContent = String(content).substring(0, 100);
+                      
+                      return (
+                        <div key={index} className="p-2 bg-gray-50 rounded text-xs">
+                          <div className="text-gray-600">Similarité: {Math.round(similarity * 100)}%</div>
+                          <div className="text-gray-800">{displayContent}{content.length > 100 ? '...' : ''}</div>
+                        </div>
+                      );
+                    } catch (err) {
+                      console.error('❌ [RAG] Error rendering result:', index, err);
+                      return (
+                        <div key={index} className="p-2 bg-red-50 rounded text-xs">
+                          <div className="text-red-600">Erreur d'affichage résultat {index + 1}</div>
+                        </div>
+                      );
+                    }
+                  })}
                 </div>
               </div>
             )}
