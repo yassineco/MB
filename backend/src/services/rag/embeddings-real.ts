@@ -5,11 +5,12 @@
 
 import { VertexAI } from '@google-cloud/vertexai';
 import { logger } from '../../logger';
+import { GoogleAuth } from 'google-auth-library';
 
 // Configuration Vertex AI
 const PROJECT_ID = process.env.PROJECT_ID || 'magic-button-demo';
-const LOCATION = 'us-central1';
-const EMBEDDING_MODEL = 'text-embedding-004';
+const LOCATION = process.env.VERTEX_LOCATION || 'europe-west1';
+const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'text-embedding-004';
 
 interface EmbeddingRequest {
   text: string;
@@ -26,20 +27,50 @@ interface EmbeddingResponse {
 }
 
 export class VertexEmbeddingsService {
-  private vertexAI: VertexAI;
-  private model: any;
+  private auth: GoogleAuth;
+  private apiEndpoint: string;
 
   constructor() {
-    // Initialiser Vertex AI
-    this.vertexAI = new VertexAI({
+    // Initialiser GoogleAuth pour appeler l'API REST
+    this.auth = new GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    });
+    
+    this.apiEndpoint = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${EMBEDDING_MODEL}:predict`;
+    
+    logger.info({
+      action: 'embeddings_service_init',
       project: PROJECT_ID,
       location: LOCATION,
+      model: EMBEDDING_MODEL,
+      endpoint: this.apiEndpoint,
+    }, 'Vertex AI Embeddings Service initialized');
+  }
+
+  /**
+   * Appel à l'API REST Vertex AI pour générer des embeddings
+   */
+  private async callEmbeddingsAPI(
+    instances: Array<{ content: string; task_type: string }>,
+  ): Promise<any> {
+    const client = await this.auth.getClient();
+    const accessToken = await client.getAccessToken();
+
+    const response = await fetch(this.apiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ instances }),
     });
 
-    // Modèle d'embeddings
-    this.model = this.vertexAI.preview.getGenerativeModel({
-      model: EMBEDDING_MODEL,
-    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Vertex AI API error: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
   }
 
   /**
@@ -59,25 +90,22 @@ export class VertexEmbeddingsService {
 
       const startTime = Date.now();
 
-      // VRAIE API Vertex AI
-      const result = await this.model.embedContent({
-        content: [{
-          role: 'user',
-          parts: [{
-            text: title ? `Title: ${title}\n\nContent: ${text}` : text
-          }]
-        }],
-        task_type: 'RETRIEVAL_DOCUMENT'
-      });
+      // Appel API REST Vertex AI
+      const content = title ? `Title: ${title}\n\nContent: ${text}` : text;
+      const result = await this.callEmbeddingsAPI([{
+        content: content,
+        task_type: 'RETRIEVAL_DOCUMENT',
+      }]);
 
       const processingTime = Date.now() - startTime;
 
-      if (!result.embedding || !result.embedding.values) {
+      if (!result.predictions || !result.predictions[0] || !result.predictions[0].embeddings) {
         throw new Error('No embedding values returned from Vertex AI');
       }
 
+      const embedding = result.predictions[0].embeddings;
       const response: EmbeddingResponse = {
-        values: result.embedding.values,
+        values: embedding.values,
         statistics: {
           token_count: Math.ceil(text.length / 4), // Approximation
           truncated: text.length > 8000,
@@ -121,23 +149,21 @@ export class VertexEmbeddingsService {
 
       const startTime = Date.now();
 
-      // VRAIE API Vertex AI
-      const result = await this.model.embedContent({
-        content: [{
-          role: 'user',
-          parts: [{ text: query }]
-        }],
-        task_type: 'RETRIEVAL_QUERY'
-      });
+      // Appel API REST Vertex AI
+      const result = await this.callEmbeddingsAPI([{
+        content: query,
+        task_type: 'RETRIEVAL_QUERY',
+      }]);
 
       const processingTime = Date.now() - startTime;
 
-      if (!result.embedding || !result.embedding.values) {
+      if (!result.predictions || !result.predictions[0] || !result.predictions[0].embeddings) {
         throw new Error('No embedding values returned from Vertex AI');
       }
 
+      const embedding = result.predictions[0].embeddings;
       const response: EmbeddingResponse = {
-        values: result.embedding.values,
+        values: embedding.values,
         statistics: {
           token_count: Math.ceil(query.length / 4),
           truncated: query.length > 8000,
