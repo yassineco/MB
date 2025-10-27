@@ -161,6 +161,10 @@ export class RealVectorDatabaseService {
       embeddingDimension: queryEmbedding.length,
       limit: options.limit,
       threshold: options.threshold,
+      collectionName: this.collectionName,
+      userId: options.userId,
+      documentIds: options.documentIds,
+      language: options.language,
     }, 'Starting REAL vector search in Firestore');
 
     try {
@@ -170,19 +174,34 @@ export class RealVectorDatabaseService {
 
       // Filtres optionnels
       if (options.userId) {
+        logger.info(`Filtering by userId: ${options.userId}`);
         query = query.where('metadata.userId', '==', options.userId);
       }
       if (options.documentIds && options.documentIds.length > 0) {
+        logger.info(`Filtering by documentIds: ${options.documentIds.join(', ')}`);
         query = query.where('documentId', 'in', options.documentIds.slice(0, 10)); // Firestore limit
       }
       if (options.language) {
+        logger.info(`Filtering by language: ${options.language}`);
         query = query.where('metadata.language', '==', options.language);
       }
 
+      logger.info('Executing Firestore query...');
       const snapshot = await query.get();
       
+      logger.info({
+        action: 'firestore_query_result',
+        snapshotSize: snapshot.size,
+        isEmpty: snapshot.empty,
+        collectionName: this.collectionName,
+      }, 'Firestore query completed');
+      
       if (snapshot.empty) {
-        logger.info('No documents found in vector search');
+        logger.warn({
+          action: 'no_documents_found',
+          collectionName: this.collectionName,
+          filters: { userId: options.userId, documentIds: options.documentIds, language: options.language },
+        }, 'No documents found in vector search - check if documents are in correct collection');
         return [];
       }
 
