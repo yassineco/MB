@@ -41,6 +41,7 @@ require("dotenv/config");
 const fastify_1 = __importDefault(require("fastify"));
 const helmet_1 = __importDefault(require("@fastify/helmet"));
 const cors_1 = __importDefault(require("@fastify/cors"));
+const rag_1 = require("./routes/rag");
 // Configuration simple pour commencer
 const config = {
     NODE_ENV: process.env.NODE_ENV || 'production',
@@ -118,7 +119,9 @@ async function createServer() {
             }
         };
     });
-    // Routes de test et de santé
+    // Enregistrement des routes RAG
+    await server.register(rag_1.ragRoutes);
+    // Routes de test et de santé (garder pour compatibilité)
     server.get('/rag/health', async () => ({
         success: true,
         services: { embeddings: true, storage: { success: true }, vectorDb: true },

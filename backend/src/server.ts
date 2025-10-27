@@ -106,8 +106,10 @@ async function createServer(): Promise<FastifyInstance> {
     };
   });
 
-  // Routes de test et de santé
+  // Enregistrement des routes RAG
+  await server.register(ragRoutes);
 
+  // Routes de test et de santé (garder pour compatibilité)
   server.get('/rag/health', async () => ({
     success: true,
     services: { embeddings: true, storage: { success: true }, vectorDb: true },
