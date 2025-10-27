@@ -377,9 +377,22 @@ export async function ragRoutes(fastify: FastifyInstance) {
       }, 'Processing response generation request');
 
       try {
+        // Étape 1: Rechercher les documents pertinents
+        const searchResults = await ragService.searchKnowledge(
+          request.body.query,
+          request.body.searchOptions || {}
+        );
+
+        logger.info({
+          action: 'rag_generate_search_complete',
+          requestId,
+          resultsFound: searchResults.results.length,
+        }, 'Search completed for generation');
+
+        // Étape 2: Générer la réponse avec les sources trouvées
         const result = await ragService.generateAugmentedResponse(
           request.body.query,
-          undefined, // maxContextChunks temporairement désactivé
+          searchResults.results,
           request.body.searchOptions
         );
 

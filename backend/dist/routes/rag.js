@@ -332,8 +332,15 @@ async function ragRoutes(fastify) {
             maxContextChunks: request.body.maxContextChunks,
         }, 'Processing response generation request');
         try {
-            const result = await rag_1.ragService.generateAugmentedResponse(request.body.query, undefined, // maxContextChunks temporairement désactivé
-            request.body.searchOptions);
+            // Étape 1: Rechercher les documents pertinents
+            const searchResults = await rag_1.ragService.searchKnowledge(request.body.query, request.body.searchOptions || {});
+            logger_1.logger.info({
+                action: 'rag_generate_search_complete',
+                requestId,
+                resultsFound: searchResults.results.length,
+            }, 'Search completed for generation');
+            // Étape 2: Générer la réponse avec les sources trouvées
+            const result = await rag_1.ragService.generateAugmentedResponse(request.body.query, searchResults.results, request.body.searchOptions);
             logger_1.logger.info({
                 action: 'rag_generate_success',
                 requestId,
