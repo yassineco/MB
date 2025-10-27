@@ -121,24 +121,6 @@ async function createServer() {
     });
     // Enregistrement des routes RAG
     await server.register(rag_1.ragRoutes);
-    // Routes de test et de santé (garder pour compatibilité)
-    server.get('/rag/health', async () => ({
-        success: true,
-        services: { embeddings: true, storage: { success: true }, vectorDb: true },
-        overallHealth: 'healthy',
-        timestamp: new Date().toISOString(),
-    }));
-    server.get('/rag/stats', async () => ({
-        success: true,
-        stats: {
-            totalDocuments: 0,
-            totalChunks: 0,
-            totalEmbeddings: 0,
-            processingQueue: 0,
-            indexHealth: 'healthy',
-            lastUpdate: new Date().toISOString(),
-        },
-    }));
     // Route GenAI principale
     server.post('/api/genai/process', {
         schema: {

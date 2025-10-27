@@ -109,26 +109,6 @@ async function createServer(): Promise<FastifyInstance> {
   // Enregistrement des routes RAG
   await server.register(ragRoutes);
 
-  // Routes de test et de santé (garder pour compatibilité)
-  server.get('/rag/health', async () => ({
-    success: true,
-    services: { embeddings: true, storage: { success: true }, vectorDb: true },
-    overallHealth: 'healthy' as const,
-    timestamp: new Date().toISOString(),
-  }));
-
-  server.get('/rag/stats', async () => ({
-    success: true,
-    stats: {
-      totalDocuments: 0,
-      totalChunks: 0, 
-      totalEmbeddings: 0,
-      processingQueue: 0,
-      indexHealth: 'healthy' as const,
-      lastUpdate: new Date().toISOString(),
-    },
-  }));
-
   // Route GenAI principale
   server.post<{ Body: AIRequest }>('/api/genai/process', {
     schema: {
