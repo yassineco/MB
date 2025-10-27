@@ -35,10 +35,11 @@ class GeminiClient {
         this.model = this.vertexAI.getGenerativeModel({
             model: env_1.config.GENAI_MODEL,
         });
-        logger_1.logger.info('Gemini client initialized', {
+        logger_1.logger.info('🤖 Gemini client initialized', {
             project: env_1.config.PROJECT_ID,
             location: env_1.config.VERTEX_LOCATION,
             model: env_1.config.GENAI_MODEL,
+            hasCredentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS
         });
     }
     /**
@@ -46,6 +47,13 @@ class GeminiClient {
      */
     async generateContent(prompt, options = {}) {
         const perfLogger = (0, logger_1.createPerformanceLogger)('gemini-generate');
+        logger_1.logger.info('🚀 Calling Vertex AI', {
+            promptLength: prompt.length,
+            temperature: options.temperature ?? 0.2,
+            maxTokens: options.maxOutputTokens ?? 1024,
+            model: env_1.config.GENAI_MODEL,
+            location: env_1.config.VERTEX_LOCATION
+        });
         try {
             const result = await this.model.generateContent({
                 contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -60,16 +68,23 @@ class GeminiClient {
             });
             const response = result.response;
             if (!response.candidates || response.candidates.length === 0) {
+                logger_1.logger.error('❌ No response candidates from Gemini', { response });
                 throw new Error('No response candidates from Gemini');
             }
             const candidate = response.candidates[0];
             if (!candidate || !candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+                logger_1.logger.error('❌ Invalid response structure from Gemini', { candidate });
                 throw new Error('Invalid response structure from Gemini');
             }
             const text = candidate.content.parts[0]?.text;
             if (!text) {
+                logger_1.logger.error('❌ Empty text response from Gemini', { candidate });
                 throw new Error('Empty text response from Gemini');
             }
+            logger_1.logger.info('✅ Vertex AI response received', {
+                responseLength: text.length,
+                responsePreview: text.substring(0, 100) + '...'
+            });
             perfLogger.end({
                 promptLength: prompt.length,
                 responseLength: text.length,
@@ -78,6 +93,12 @@ class GeminiClient {
             return text.trim();
         }
         catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            logger_1.logger.error('❌ Vertex AI call failed', {
+                error: errorMessage,
+                promptLength: prompt.length,
+                options,
+            });
             perfLogger.error(error, {
                 promptLength: prompt.length,
                 options,
@@ -86,22 +107,25 @@ class GeminiClient {
         }
     }
     /**
-     * Corrige le texte (orthographe, grammaire, syntaxe)
+     * Corrige le texte (grammaire, orthographe, style)
      */
     async correctText(text) {
         const prompt = `
-Corrige les erreurs d'orthographe, de grammaire et de syntaxe dans le texte suivant.
-Préserve le style et le ton original.
-Ne modifie que les erreurs évidentes.
-Réponds uniquement avec le texte corrigé, sans commentaires.
+CORRECT ALL ERRORS IN THIS TEXT.
 
-Texte à corriger :
-"${text}"
+RULES:
+- FIX spelling mistakes
+- FIX grammar errors  
+- IMPROVE sentence structure
+- KEEP original meaning
+- RETURN ONLY THE CORRECTED TEXT
 
-Texte corrigé :`;
+Text to correct: "${text}"
+
+Corrected text:`;
         return this.generateContent(prompt, {
-            temperature: 0.1, // Très faible pour cohérence
-            maxOutputTokens: Math.max(text.length * 2, 256),
+            temperature: 0.1,
+            maxOutputTokens: text.length * 2,
         });
     }
     /**
@@ -109,62 +133,139 @@ Texte corrigé :`;
      */
     async summarizeText(text, maxLength = 200) {
         const prompt = `
-Résume le texte suivant en maximum ${maxLength} mots.
-Conserve les points clés et les informations essentielles.
-Utilise un style clair et concis.
-Réponds uniquement avec le résumé, sans commentaires.
+SUMMARIZE THIS TEXT IN MAXIMUM ${maxLength} WORDS.
 
-Texte à résumer :
-"${text}"
+RULES:
+- KEEP key points only
+- USE clear and concise language
+- MAINTAIN essential information
+- RETURN ONLY THE SUMMARY
 
-Résumé (max ${maxLength} mots) :`;
+Text to summarize: "${text}"
+
+Summary (max ${maxLength} words):`;
         return this.generateContent(prompt, {
-            temperature: 0.3,
+            temperature: 0.2,
             maxOutputTokens: Math.min(maxLength * 2, 512),
         });
     }
     /**
-     * Traduit le texte
+     * Traduit le texte - VERSION SIMPLIFIÉE (1 étape) pour gemini-2.5-flash
      */
-    async translateText(text, targetLanguage) {
-        // Normalisation des langues
-        const normalizedLanguage = targetLanguage.toLowerCase().includes('en') ? 'English' : targetLanguage;
-        const prompt = `
-You are a professional translator. Translate the following text COMPLETELY into ${normalizedLanguage}.
+    async translateText(text, targetLanguage = 'English') {
+        logger_1.logger.info('🌍 Starting translation (SIMPLIFIED - 1 step)', {
+            textLength: text.length,
+            targetLanguage,
+            textPreview: text.substring(0, 100) + '...'
+        });
+        const translationPrompt = `
+You are a professional translator. Translate the following French text into perfect ${targetLanguage}.
 
-CRITICAL RULES:
-- Translate EVERY single word - leave NO words in the original language
-- Use natural, fluent ${normalizedLanguage} expressions
-- Maintain professional tone and meaning
-- Convert ALL French/other language words to ${normalizedLanguage}
-- Provide ONLY the complete translation, no explanations
+CRITICAL REQUIREMENTS:
+- Translate EVERY word from French to ${targetLanguage}
+- Output ONLY ${targetLanguage} - absolutely NO French words allowed
+- Maintain the original meaning and professional tone
+- Do NOT add explanations or comments
 
-Text to translate:
+French text to translate:
 "${text}"
 
-Complete ${normalizedLanguage} translation:`;
-        return this.generateContent(prompt, {
-            temperature: 0.1, // Plus bas pour plus de cohérence
-            maxOutputTokens: text.length * 3,
+Your ${targetLanguage} translation:`;
+        logger_1.logger.info('📤 Sending translation request to Gemini');
+        const result = await this.generateContent(translationPrompt, {
+            temperature: 0.1,
+            maxOutputTokens: Math.max(2048, text.length * 4),
         });
+        logger_1.logger.info('✅ Translation completed', {
+            originalLength: text.length,
+            resultLength: result.length,
+            resultPreview: result.substring(0, 100) + '...',
+            targetLanguage
+        });
+        return result;
+    }
+    /**
+     * Nettoie la traduction pour éliminer les mots français résiduels
+     */
+    async cleanUpTranslation(translation, targetLanguage) {
+        // Détection élargie des mots et constructions françaises
+        const frenchPatterns = [
+            // Articles français
+            /\bl[ae]s?\b/gi, /\bun[e]?\b/gi, /\bdes?\b/gi, /\bdu\b/gi,
+            // Mots de liaison français
+            /\bqui\b/gi, /\bque\b/gi, /\bavec\b/gi, /\bdans\b/gi, /\bpour\b/gi, /\bsur\b/gi, /\bpar\b/gi,
+            /\bcomme\b/gi, /\bmais\b/gi, /\bet\b/gi, /\bou\b/gi, /\bsi\b/gi,
+            // Mots problématiques spécifiques du texte
+            /\binstallation\b/gi, /\battractivité\b/gi, /\brévélatrice\b/gi, /\bfavorisent\b/gi,
+            /\bpersonnes\b/gi, /\bmême\b/gi, /\bnombre\b/gi, /\bplus\b/gi, /\bgrand\b/gi,
+            /\bfait\b/gi, /\bsens\b/gi, /\bforte\b/gi,
+            // Apostrophes françaises
+            /\bl'/gi, /\bd'/gi, /\bn'/gi, /\bs'/gi, /\bc'/gi, /\bj'/gi, /\bm'/gi, /\bt'/gi,
+            // Patterns spécifiques
+            /\bd'un\b/gi, /\bd'une\b/gi, /\bd'a\b/gi
+        ];
+        const hasFrenchContent = frenchPatterns.some(pattern => pattern.test(translation));
+        logger_1.logger.info('Translation cleanup check', {
+            hasFrenchContent,
+            originalText: translation.substring(0, 100) + '...',
+            targetLanguage
+        });
+        if (hasFrenchContent) {
+            logger_1.logger.warn('French content detected, applying cleanup', {
+                translation: translation.substring(0, 200) + '...'
+            });
+            const cleanupPrompt = `
+EMERGENCY TRANSLATION CLEANUP REQUIRED!
+
+The following text contains French words/phrases mixed with English. 
+YOU MUST REWRITE IT COMPLETELY IN PURE ENGLISH.
+
+CRITICAL REQUIREMENTS:
+- REMOVE ALL FRENCH WORDS AND PHRASES
+- TRANSLATE EVERYTHING TO PERFECT ENGLISH
+- NO APOSTROPHES WITH FRENCH WORDS (l', d', n', etc.)
+- NO FRENCH ARTICLES (le, la, les, un, une, des, du, de)
+- NO FRENCH LINKING WORDS (qui, que, avec, dans, pour, etc.)
+- ENSURE 100% ENGLISH OUTPUT
+
+CONTAMINATED TEXT:
+"${translation}"
+
+PURE ENGLISH VERSION (NO FRENCH ALLOWED):`;
+            const cleanedTranslation = await this.generateContent(cleanupPrompt, {
+                temperature: 0.0,
+                maxOutputTokens: translation.length * 2,
+            });
+            logger_1.logger.info('Translation cleaned', {
+                before: translation.substring(0, 100) + '...',
+                after: cleanedTranslation.substring(0, 100) + '...'
+            });
+            return cleanedTranslation;
+        }
+        return translation;
     }
     /**
      * Optimise le contenu pour un objectif spécifique
      */
     async optimizeContent(text, purpose = 'clarté et impact') {
         const prompt = `
-Optimise le texte suivant pour ${purpose}.
-Améliore la clarté, l'impact et la lisibilité.
-Conserve le message principal tout en améliorant la forme.
-Réponds uniquement avec le texte optimisé, sans commentaires.
+TASK: OPTIMIZE TEXT FOR ${purpose.toUpperCase()}
 
-Objectif : ${purpose}
-Texte original :
+INSTRUCTIONS:
+1. IMPROVE clarity, impact, and readability
+2. PRESERVE the original meaning and message
+3. ENHANCE structure and flow
+4. MAKE it more professional and engaging
+5. RESPOND ONLY with the optimized text
+6. NO explanations, NO comments, NO additional text
+
+PURPOSE: ${purpose}
+ORIGINAL TEXT:
 "${text}"
 
-Texte optimisé :`;
+OPTIMIZED TEXT:`;
         return this.generateContent(prompt, {
-            temperature: 0.4, // Plus créatif pour optimisation
+            temperature: 0.2, // Plus cohérent pour optimisation
             maxOutputTokens: text.length * 2,
         });
     }
@@ -173,18 +274,29 @@ Texte optimisé :`;
      */
     async analyzeText(text) {
         const prompt = `
-Analyse le texte suivant et fournis :
-- Sentiment général (positif/négatif/neutre)
-- Style et ton
-- Points forts et points d'amélioration
-- Suggestions d'optimisation
+TASK: ANALYZE TEXT COMPREHENSIVELY
 
-Texte à analyser :
+INSTRUCTIONS:
+1. ANALYZE sentiment (positive/negative/neutral) with percentage confidence
+2. IDENTIFY writing style and tone
+3. LIST strengths and weaknesses
+4. PROVIDE specific improvement suggestions
+5. BE concise and actionable
+6. USE structured format with clear sections
+
+FORMAT YOUR RESPONSE AS:
+📊 SENTIMENT: [sentiment] ([confidence]%)
+✍️ STYLE: [description]
+💪 STRENGTHS: [list]
+⚠️ WEAKNESSES: [list]
+🎯 SUGGESTIONS: [actionable recommendations]
+
+TEXT TO ANALYZE:
 "${text}"
 
-Analyse :`;
+ANALYSIS:`;
         return this.generateContent(prompt, {
-            temperature: 0.3,
+            temperature: 0.1, // Très précis pour analyse
             maxOutputTokens: 512,
         });
     }
