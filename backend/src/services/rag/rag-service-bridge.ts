@@ -223,7 +223,8 @@ class RAGService {
       
       if (sources.length > 0) {
         sources.forEach((source, index) => {
-          response += `${index + 1}. ${source.content?.substring(0, 200)}...\n\n`;
+          const content = source.document?.content || source.content || '';
+          response += `${index + 1}. ${content.substring(0, 200)}...\n\n`;
         });
       } else {
         response = "Aucune information spécifique trouvée pour cette requête.";
