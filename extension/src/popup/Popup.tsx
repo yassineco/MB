@@ -45,7 +45,7 @@ const AI_ACTIONS: AIAction[] = [
     color: 'bg-blue-500 hover:bg-blue-600',
   },
   {
-    id: 'résumer',
+    id: 'resumer',
     name: 'Résumer',
     description: 'Résume le texte en points clés',
     icon: <FileText className="w-4 h-4" />,
