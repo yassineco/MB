@@ -1,7 +1,7 @@
 // Configuration API Magic Button
 // Basculer entre développement et production
 
-const isDevelopment = false; // Changer à true pour développement local
+const isDevelopment = false; // ✅ MODE PRODUCTION - API Cloud Run avec gemini-2.5-flash
 
 export const API_CONFIG = {
   // URLs
