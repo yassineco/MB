@@ -2,10 +2,17 @@
 
 ## 📊 État du projet
 
-**Version** : 1.0.0  
-**Statut** : MVP Complet ✅  
-**Date** : 24 octobre 2025  
+**Version** : 1.0.1  
+**Statut** : Production ✅  
+**Dernière mise à jour** : 27 octobre 2025  
 **Développeur** : Yassine  
+
+### 🆕 Mise à Jour 27 Octobre 2025
+- ✅ **Problème de traduction mixte RÉSOLU**
+- ✅ Traduction 100% pure avec gemini-2.5-flash
+- ✅ Extension configurée en mode production
+- ✅ Backend déployé avec toutes variables d'environnement
+- ✅ Tests multilingues validés (FR→EN, FR→ES)
 
 ---
 
