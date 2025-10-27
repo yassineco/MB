@@ -180,17 +180,19 @@ Corrected text:`;
    */
   async summarizeText(text: string, maxLength: number = 200): Promise<string> {
     const prompt = `
-SUMMARIZE THIS TEXT IN MAXIMUM ${maxLength} WORDS.
+RÉSUME CE TEXTE EN MAXIMUM ${maxLength} MOTS DANS LA MÊME LANGUE QUE LE TEXTE SOURCE.
 
-RULES:
-- KEEP key points only
-- USE clear and concise language
-- MAINTAIN essential information
-- RETURN ONLY THE SUMMARY
+RÈGLES IMPORTANTES :
+- Garde UNIQUEMENT les points clés
+- Utilise un langage clair et concis
+- Conserve les informations essentielles
+- Résume dans LA MÊME LANGUE que le texte original (français si le texte est en français, anglais si en anglais, etc.)
+- NE TRADUIS PAS, reste dans la langue source
+- Retourne UNIQUEMENT le résumé, rien d'autre
 
-Text to summarize: "${text}"
+Texte à résumer : "${text}"
 
-Summary (max ${maxLength} words):`;
+Résumé (max ${maxLength} mots, dans la langue du texte source) :`;
 
     return this.generateContent(prompt, {
       temperature: 0.2,
