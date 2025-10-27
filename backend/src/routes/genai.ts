@@ -129,10 +129,16 @@ export async function genaiRoutes(
       // Validation du body avec Zod
       const validatedBody = aiRequestSchema.parse(request.body);
 
-      fastify.log.info(`Processing AI request: ${validatedBody.action}, text length: ${validatedBody.text.length}`);
+      logger.info('🎯 GenAI action received', {
+        action: validatedBody.action,
+        textLength: validatedBody.text.length,
+        textPreview: validatedBody.text.substring(0, 100) + '...',
+        options: validatedBody.options
+      });
 
       // Validation spécifique selon l'action
       if (validatedBody.action === 'translate' && !validatedBody.options?.targetLanguage) {
+        logger.warn('❌ Translation without target language');
         return reply.code(400).send({
           error: true,
           message: 'Target language is required for translation',
@@ -148,7 +154,17 @@ export async function genaiRoutes(
         options: validatedBody.options as any,
       };
 
+      logger.info('🚀 Calling Gemini client', { action: validatedBody.action });
+
       const result: AIResponse = await geminiClient.processAIRequest(aiRequest);
+
+      logger.info('✅ Gemini processing completed', {
+        action: result.action,
+        originalLength: result.originalLength,
+        resultLength: result.resultLength,
+        processingTime: result.processingTime,
+        resultPreview: result.result.substring(0, 100) + '...'
+      });
 
       perfLogger.end({
         action: result.action,
@@ -156,8 +172,6 @@ export async function genaiRoutes(
         resultLength: result.resultLength,
         processingTime: result.processingTime,
       });
-
-      fastify.log.info(`AI request completed: ${result.action} in ${result.processingTime}ms`);
 
       return reply.code(200).send({
         success: true,
@@ -340,6 +354,13 @@ export async function genaiRoutes(
     try {
       const body = request.body as any;
       
+      logger.info('🎯 Extension request received', {
+        action: body.action,
+        textLength: body.text.length,
+        textPreview: body.text.substring(0, 100) + '...',
+        options: body.options
+      });
+      
       // Mapping des actions françaises vers anglaises
       const actionMap: { [key: string]: AIAction } = {
         'corriger': 'correct',
@@ -351,7 +372,10 @@ export async function genaiRoutes(
 
       const mappedAction = actionMap[body.action] || body.action;
 
-      fastify.log.info(`Processing extension request: ${body.action} -> ${mappedAction}, text length: ${body.text.length}`);
+      logger.info('🔄 Action mapping', {
+        original: body.action,
+        mapped: mappedAction
+      });
 
       // Validation spécifique selon l'action
       if ((mappedAction === 'translate' || body.action === 'traduire') && !body.options?.targetLanguage) {
@@ -369,7 +393,21 @@ export async function genaiRoutes(
         options: body.options,
       };
 
+      logger.info('🚀 Calling Gemini for extension', {
+        action: mappedAction,
+        textLength: body.text.length
+      });
+
       const result = await geminiClient.processAIRequest(aiRequest);
+      
+      logger.info('✅ Extension processing completed', {
+        action: result.action,
+        originalLength: result.originalLength,
+        resultLength: result.resultLength,
+        processingTime: result.processingTime,
+        resultPreview: result.result.substring(0, 100) + '...'
+      });
+      
       perfLogger.end();
 
       // Format de réponse pour l'extension (différent de l'API)

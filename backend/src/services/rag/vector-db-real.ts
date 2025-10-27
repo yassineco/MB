@@ -18,8 +18,16 @@ export class RealVectorDatabaseService {
   constructor() {
     this.firestore = new Firestore({
       projectId: process.env.PROJECT_ID || 'magic-button-demo',
+      databaseId: process.env.FIRESTORE_DATABASE_ID || '(default)',
     });
     this.collectionName = process.env.FIRESTORE_VECTORS_COLLECTION || 'rag_vectors';
+    
+    logger.info({
+      action: 'firestore_init',
+      projectId: process.env.PROJECT_ID,
+      databaseId: process.env.FIRESTORE_DATABASE_ID || '(default)',
+      collection: this.collectionName,
+    }, 'Firestore client initialized for vector database');
   }
 
   /**
