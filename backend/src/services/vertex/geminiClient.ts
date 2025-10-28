@@ -318,26 +318,24 @@ PURE ENGLISH VERSION (NO FRENCH ALLOWED):`;
    * Optimise le contenu pour un objectif spécifique
    */
   async optimizeContent(text: string, purpose: string = 'clarté et impact'): Promise<string> {
-    const prompt = `
-TASK: OPTIMIZE TEXT FOR ${purpose.toUpperCase()}
+    const prompt = `Tu es un expert en rédaction qui optimise les textes pour les rendre plus professionnels.
 
-INSTRUCTIONS:
-1. IMPROVE clarity, impact, and readability
-2. PRESERVE the original meaning and message
-3. ENHANCE structure and flow
-4. MAKE it more professional and engaging
-5. RESPOND ONLY with the optimized text
-6. NO explanations, NO comments, NO additional text
+TEXTE À OPTIMISER :
+${text}
 
-PURPOSE: ${purpose}
-ORIGINAL TEXT:
-"${text}"
+INSTRUCTIONS :
+- Améliore la clarité, l'impact et la lisibilité
+- Préserve EXACTEMENT le sens et le message original
+- Rends le style plus professionnel et engageant
+- Améliore la structure et le flow des phrases
+- Garde la MÊME langue que le texte original
+- Retourne UNIQUEMENT le texte optimisé
 
-OPTIMIZED TEXT:`;
+TEXTE OPTIMISÉ :`;
 
     return this.generateContent(prompt, {
-      temperature: 0.2, // Plus cohérent pour optimisation
-      maxOutputTokens: text.length * 2,
+      temperature: 0.3,
+      maxOutputTokens: 1024,
     });
   }
 

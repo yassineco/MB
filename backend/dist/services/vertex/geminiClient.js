@@ -131,24 +131,27 @@ Corrected text:`;
     /**
      * Résume le texte
      */
-    async summarizeText(text, maxLength = 150) {
-        const prompt = `Tu es un assistant qui résume des textes dans leur langue d'origine.
+    async summarizeText(text, maxLength = 80) {
+        // Calculer la longueur du texte source pour adapter le résumé
+        const sourceWords = text.split(/\s+/).length;
+        const targetWords = Math.min(maxLength, Math.max(20, Math.floor(sourceWords * 0.4))); // Max 40% du texte original
+        const prompt = `Tu es un assistant qui crée de VRAIS résumés (plus courts que l'original).
 
-TEXTE À RÉSUMER :
+TEXTE ORIGINAL (${sourceWords} mots) :
 ${text}
 
-INSTRUCTIONS :
-- Résume ce texte en conservant TOUS les points importants
-- Utilise environ ${maxLength} mots
-- Écris PLUSIEURS phrases complètes
-- Garde la MÊME langue que le texte original (ne traduis pas)
-- Sois clair et précis
-- Retourne UNIQUEMENT le résumé, sans introduction ni conclusion
+INSTRUCTIONS STRICTES :
+- Crée un VRAI résumé de maximum ${targetWords} mots (BEAUCOUP plus court que l'original)
+- Garde UNIQUEMENT les 2-3 idées les plus importantes
+- SUPPRIME les détails, exemples, et informations secondaires
+- Utilise la MÊME langue que le texte original
+- Une ou deux phrases maximum
+- Le résumé DOIT être significativement plus court que l'original
 
-RÉSUMÉ :`;
+RÉSUMÉ (max ${targetWords} mots) :`;
         return this.generateContent(prompt, {
-            temperature: 0.4,
-            maxOutputTokens: 2048,
+            temperature: 0.3,
+            maxOutputTokens: 1024, // Fixe pour éviter les troncatures
         });
     }
     /**
@@ -250,25 +253,23 @@ PURE ENGLISH VERSION (NO FRENCH ALLOWED):`;
      * Optimise le contenu pour un objectif spécifique
      */
     async optimizeContent(text, purpose = 'clarté et impact') {
-        const prompt = `
-TASK: OPTIMIZE TEXT FOR ${purpose.toUpperCase()}
+        const prompt = `Tu es un expert en rédaction qui optimise les textes pour les rendre plus professionnels.
 
-INSTRUCTIONS:
-1. IMPROVE clarity, impact, and readability
-2. PRESERVE the original meaning and message
-3. ENHANCE structure and flow
-4. MAKE it more professional and engaging
-5. RESPOND ONLY with the optimized text
-6. NO explanations, NO comments, NO additional text
+TEXTE À OPTIMISER :
+${text}
 
-PURPOSE: ${purpose}
-ORIGINAL TEXT:
-"${text}"
+INSTRUCTIONS :
+- Améliore la clarité, l'impact et la lisibilité
+- Préserve EXACTEMENT le sens et le message original
+- Rends le style plus professionnel et engageant
+- Améliore la structure et le flow des phrases
+- Garde la MÊME langue que le texte original
+- Retourne UNIQUEMENT le texte optimisé
 
-OPTIMIZED TEXT:`;
+TEXTE OPTIMISÉ :`;
         return this.generateContent(prompt, {
-            temperature: 0.2, // Plus cohérent pour optimisation
-            maxOutputTokens: text.length * 2,
+            temperature: 0.3,
+            maxOutputTokens: 1024,
         });
     }
     /**
