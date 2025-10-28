@@ -171,13 +171,46 @@ Permettre aux utilisateurs de sélectionner du texte sur n'importe quelle page w
 
 ### 🔍 3. Interface Utilisateur
 
-#### **Popup Extension**
+#### **Extension Chrome Nouvelle Génération (v2.0)**
+- **Interface Persistante**: 
+  - ✨ Bouton flottant toujours visible (coin supérieur droit)
+  - 🎛️ Contrôles on/off intégrés (⚡ activé / 💤 désactivé)
+  - 📍 Position fixe qui suit l'utilisateur sur toutes les pages
+  - 💾 Sauvegarde automatique de l'état entre sessions
+
+#### **Panel Intelligent Rétractable**
+- **Zone de Texte Dynamique**: 
+  - Détection automatique du texte sélectionné
+  - Preview en temps réel avec highlighting
+  - Support textes longs avec scroll intelligent
+- **Actions IA Visuelles**:
+  - ✏️ Corriger (avec icône stylo)
+  - ✨ Résumer (avec icône document)
+  - 🌍 Traduire (avec icône globe)
+  - 🎯 Optimiser (avec icône cible)
+- **Feedback Temps Réel**:
+  - Statut coloré: Prêt (vert), Traitement (orange), Erreur (rouge)
+  - Animation de chargement avec rotation
+  - Copie automatique + notification de succès
+
+#### **Design System Avancé**
+- **Responsive Design**: 
+  - Desktop: Panel 320px avec grid 2×2 pour actions
+  - Tablet: Panel 280px adaptatif
+  - Mobile: Full-width avec actions en colonne unique
+- **Accessibilité**:
+  - Support clavier complet (Tab, Escape, Enter)
+  - Screen readers compatible
+  - Mode contraste élevé automatique
+  - Reduced motion pour utilisateurs sensibles
+- **Dark Mode**: 
+  - Détection automatique des préférences système
+  - Palette de couleurs adaptée (#1f2937, #374151)
+  - Contraste optimisé pour lecture nocturne
+
+#### **Popup Extension (Conservée)**
 - **Composant**: `Popup.tsx` (React + TypeScript)
-- **Actions disponibles**:
-  - ✏️ Corriger
-  - ✨ Résumer
-  - 🌍 Traduire
-  - 🎯 Optimiser
+- **Usage**: Backup interface via icône extension
 - **Onglets**:
   - **Texte**: Traitement du texte sélectionné
   - **Documents**: Upload et recherche RAG
@@ -393,9 +426,18 @@ npm run build  # Vite build → dist/
 - **Documentation**: ~15 fichiers Markdown
 
 #### **Révisions Cloud Run**
-- **Actuelle**: `magic-button-api-00031-s5w`
-- **Totales**: 31 révisions déployées
+- **Actuelle**: `magic-button-api-00035-htv`
+- **Totales**: 35+ révisions déployées
 - **Uptime**: 99.9% (Cloud Run SLA)
+
+#### **Extension Chrome**
+- **Version**: 2.0.0 (Enhanced UX)
+- **Nouvelles fonctionnalités**:
+  - ✨ Interface persistante avec bouton flottant
+  - 🎛️ Contrôles avancés (on/off, réduction)
+  - 💾 Sauvegarde automatique de l'état
+  - 🎨 Animations fluides et design responsive
+  - 🌙 Support mode sombre et accessibilité
 
 #### **Performance Vertex AI**
 - **Gemini 2.5 Flash**: ~2s temps réponse moyen
@@ -426,24 +468,39 @@ npm run build  # Vite build → dist/
 
 ### 💼 Scénarios d'Usage
 
-#### **Scénario 1: Correction Email Professionnel**
-1. Rédaction email en français sur Gmail
-2. Sélection du texte
-3. Clic "Corriger" dans Magic Button
-4. Copie du texte corrigé
-5. **Résultat**: Email sans fautes, professionnel
+#### **Scénario 1: Interface Persistante - Workflow Optimisé**
+1. **Ouverture page web** → Bouton flottant ✨ apparaît automatiquement
+2. **Sélection texte email** → Bouton pulse pour attirer l'attention  
+3. **Clic sur bouton flottant** → Panel s'ouvre avec texte pré-chargé
+4. **Clic "Corriger"** → Traitement en temps réel avec feedback
+5. **Auto-copie résultat** → Notification "Copié dans le presse-papiers"
+6. **Paste dans email** → Texte corrigé appliqué instantanément
+7. **Panel reste ouvert** → Prêt pour prochaine action
+8. **Résultat**: Workflow fluide sans interruption
 
-#### **Scénario 2: Résumé Article de Veille**
-1. Lecture article long (3000 mots) sur site tech
-2. Sélection du contenu principal
-3. Clic "Résumer"
-4. **Résultat**: Résumé 150 mots avec points clés
+#### **Scénario 2: Mode Stealth - Extension Désactivée** 
+1. **Réunion importante** → Clic bouton ⚡ pour passer en mode 💤
+2. **Navigation web normale** → Aucune interface visible
+3. **Texte sélectionné** → Pas de réaction (mode silencieux)
+4. **Fin réunion** → Re-clic bouton 💤 pour retourner en ⚡
+5. **Résultat**: Contrôle total de la visibilité
 
-#### **Scénario 3: RAG sur Documentation Interne**
-1. Upload de 10 documents internes (guides, procédures)
-2. Question: "Comment configurer le serveur?"
-3. RAG génère réponse avec citations
-4. **Résultat**: Réponse précise basée sur docs internes
+#### **Scénario 3: Résumé Article avec Interface Avancée**
+1. **Article long** (3000 mots) ouvert dans onglet
+2. **Sélection paragraphe clé** → Bouton ✨ pulse automatiquement
+3. **Ouverture panel** → Texte affiché avec preview stylé
+4. **Clic "Résumer"** → Statut passe à "Traitement..." (orange)
+5. **Résultat instantané** → Résumé 40 mots + auto-copie
+6. **Notification succès** → "Copié dans le presse-papiers" (vert)
+7. **Panel reste ouvert** → Prêt pour autre section d'article
+8. **Résultat**: Synthèse rapide avec workflow continu
+
+#### **Scénario 4: RAG Multi-Documents Persistant**
+1. **Upload 5 documents** internes via panel Documents
+2. **Recherche "procédure"** → Résultats avec scores de similarité
+3. **Interface reste active** → Recherches multiples sans recharge
+4. **Questions itératives** → Contexte maintenu entre requêtes
+5. **Résultat**: Base de connaissances accessible en permanence
 
 ---
 

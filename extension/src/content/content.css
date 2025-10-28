@@ -1,13 +1,206 @@
-/* Content script styles */
-#magic-button-indicator {
+/* Magic Button Enhanced UX Styles */
+
+/* Bouton flottant */
+#magic-floating-btn {
   font-weight: 500;
   letter-spacing: 0.5px;
   border: none;
   user-select: none;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
 }
 
-#magic-button-indicator:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+#magic-floating-btn:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 8px 30px rgba(102, 126, 234, 0.6) !important;
+}
+
+#magic-floating-btn:active {
+  transform: scale(0.95) !important;
+}
+
+/* Panel principal */
+#magic-panel {
+  backdrop-filter: blur(20px);
+  transform-origin: top right;
+}
+
+/* Animations globales */
+@keyframes magicSlideIn {
+  from { 
+    transform: translateX(100%) scale(0.9); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateX(0) scale(1); 
+    opacity: 1; 
+  }
+}
+
+@keyframes magicSlideOut {
+  from { 
+    transform: translateX(0) scale(1); 
+    opacity: 1; 
+  }
+  to { 
+    transform: translateX(100%) scale(0.9); 
+    opacity: 0; 
+  }
+}
+
+@keyframes magicPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); box-shadow: 0 8px 30px rgba(102, 126, 234, 0.6); }
+  100% { transform: scale(1); }
+}
+
+@keyframes magicFadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(-10px) scale(0.95); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+  }
+}
+
+@keyframes magicSpinning {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Boutons d'action avec hover states avancés */
+.magic-action-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.magic-action-btn:hover:not([style*="pointer-events: none"]) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+}
+
+.magic-action-btn:hover:not([style*="pointer-events: none"]) .magic-action-icon {
+  transform: scale(1.2);
+}
+
+.magic-action-btn:active:not([style*="pointer-events: none"]) {
+  transform: translateY(0px) !important;
+}
+
+/* Boutons de contrôle */
+.magic-control-btn:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  transform: scale(1.1);
+}
+
+.magic-control-btn:active {
+  transform: scale(0.95);
+}
+
+/* Zone de texte sélectionné */
+.magic-selected-text {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.magic-selected-text:not(:empty):not([style*="color: #64748b"]) {
+  border-style: solid !important;
+}
+
+/* Status avec animation */
+.magic-status {
+  transition: all 0.3s ease;
+}
+
+.magic-status-indicator {
+  transition: all 0.3s ease;
+}
+
+/* Effets de chargement */
+.magic-status-indicator[style*="background: #f59e0b"] {
+  animation: magicSpinning 1s linear infinite;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  #magic-floating-btn {
+    width: 48px !important;
+    height: 48px !important;
+    top: 15px !important;
+    right: 15px !important;
+  }
+  
+  #magic-panel {
+    width: 280px !important;
+    right: 15px !important;
+    top: 75px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #magic-panel {
+    width: calc(100vw - 30px) !important;
+    right: 15px !important;
+    left: 15px !important;
+    top: 75px !important;
+  }
+  
+  .magic-actions {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  #magic-floating-btn {
+    border: 2px solid #000;
+  }
+  
+  #magic-panel {
+    border: 2px solid #000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  #magic-floating-btn,
+  #magic-panel,
+  .magic-action-btn,
+  .magic-control-btn,
+  .magic-status-indicator {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  #magic-panel {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+  }
+  
+  .magic-selected-text {
+    background: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #d1d5db !important;
+  }
+  
+  .magic-action-btn {
+    background: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #d1d5db !important;
+  }
+}
+
+/* Focus states pour accessibilité */
+#magic-floating-btn:focus-visible,
+.magic-action-btn:focus-visible,
+.magic-control-btn:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
 }

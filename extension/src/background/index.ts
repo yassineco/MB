@@ -29,8 +29,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true; // Indique une réponse asynchrone
       
     case 'PROCESS_AI_REQUEST':
-      processAIRequest(message.data, sendResponse);
+    case 'PROCESS_TEXT': // Nouveau type pour interface améliorée
+      processAIRequest(message, sendResponse);
       return true;
+      
+    case 'OPEN_POPUP':
+      // Message pour ouvrir la popup (compatibilité)
+      console.log('Popup open request:', message);
+      sendResponse({ success: true });
+      return false;
       
     default:
       console.warn('Unknown message type:', message.type);
@@ -62,8 +69,11 @@ async function handleGetSelectedText(tabId: number | undefined, sendResponse: (r
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
 // Traiter une requête IA via l'API Cloud Run - VERTEX AI
-async function processAIRequest(data: any, sendResponse: (response: any) => void) {
+async function processAIRequest(message: any, sendResponse: (response: any) => void) {
   try {
+    // Support pour les deux formats de message
+    const data = message.data || message;
+    
     const apiUrl = `${API_BASE_URL}/api/genai/process`;
     console.log('🚀 VERTEX AI - Making API request to:', apiUrl);
     console.log('Request data:', data);
@@ -96,7 +106,14 @@ async function processAIRequest(data: any, sendResponse: (response: any) => void
 
     const result = await response.json();
     console.log('✅ API Response success:', result);
-    sendResponse(result);
+    
+    // Format de réponse unifié
+    sendResponse({ 
+      success: true, 
+      result: result.result || result.text || result,
+      action: data.action,
+      processingTime: result.processingTime
+    });
 
   } catch (error) {
     console.error('❌ Error processing AI request:', error);
@@ -106,8 +123,9 @@ async function processAIRequest(data: any, sendResponse: (response: any) => void
       stack: error instanceof Error ? error.stack : undefined
     });
     sendResponse({ 
+      success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
-      action: data.action 
+      action: (message.data || message).action 
     });
   }
 }
