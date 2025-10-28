@@ -131,22 +131,24 @@ Corrected text:`;
     /**
      * Résume le texte
      */
-    async summarizeText(text, maxLength = 200) {
-        const prompt = `
-SUMMARIZE THIS TEXT IN MAXIMUM ${maxLength} WORDS.
+    async summarizeText(text, maxLength = 150) {
+        const prompt = `Tu es un assistant qui résume des textes dans leur langue d'origine.
 
-RULES:
-- KEEP key points only
-- USE clear and concise language
-- MAINTAIN essential information
-- RETURN ONLY THE SUMMARY
+TEXTE À RÉSUMER :
+${text}
 
-Text to summarize: "${text}"
+INSTRUCTIONS :
+- Résume ce texte en conservant TOUS les points importants
+- Utilise environ ${maxLength} mots
+- Écris PLUSIEURS phrases complètes
+- Garde la MÊME langue que le texte original (ne traduis pas)
+- Sois clair et précis
+- Retourne UNIQUEMENT le résumé, sans introduction ni conclusion
 
-Summary (max ${maxLength} words):`;
+RÉSUMÉ :`;
         return this.generateContent(prompt, {
-            temperature: 0.2,
-            maxOutputTokens: Math.min(maxLength * 2, 512),
+            temperature: 0.4,
+            maxOutputTokens: 2048,
         });
     }
     /**
