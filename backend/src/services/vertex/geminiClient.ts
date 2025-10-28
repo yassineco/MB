@@ -178,25 +178,25 @@ Corrected text:`;
   /**
    * Résume le texte
    */
-  async summarizeText(text: string, maxLength: number = 200): Promise<string> {
-    const prompt = `
-RÉSUME CE TEXTE EN MAXIMUM ${maxLength} MOTS DANS LA MÊME LANGUE QUE LE TEXTE SOURCE.
+  async summarizeText(text: string, maxLength: number = 150): Promise<string> {
+    const prompt = `Tu es un assistant qui résume des textes dans leur langue d'origine.
 
-RÈGLES IMPORTANTES :
-- Garde UNIQUEMENT les points clés
-- Utilise un langage clair et concis
-- Conserve les informations essentielles
-- Résume dans LA MÊME LANGUE que le texte original (français si le texte est en français, anglais si en anglais, etc.)
-- NE TRADUIS PAS, reste dans la langue source
-- Retourne UNIQUEMENT le résumé, rien d'autre
+TEXTE À RÉSUMER :
+${text}
 
-Texte à résumer : "${text}"
+INSTRUCTIONS :
+- Résume ce texte en conservant TOUS les points importants
+- Utilise environ ${maxLength} mots
+- Écris PLUSIEURS phrases complètes
+- Garde la MÊME langue que le texte original (ne traduis pas)
+- Sois clair et précis
+- Retourne UNIQUEMENT le résumé, sans introduction ni conclusion
 
-Résumé (max ${maxLength} mots, dans la langue du texte source) :`;
+RÉSUMÉ :`;
 
     return this.generateContent(prompt, {
-      temperature: 0.2,
-      maxOutputTokens: Math.min(maxLength * 2, 512),
+      temperature: 0.4,
+      maxOutputTokens: 2048,
     });
   }
 
