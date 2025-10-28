@@ -178,25 +178,29 @@ Corrected text:`;
   /**
    * Résume le texte
    */
-  async summarizeText(text: string, maxLength: number = 150): Promise<string> {
-    const prompt = `Tu es un assistant qui résume des textes dans leur langue d'origine.
+  async summarizeText(text: string, maxLength: number = 80): Promise<string> {
+    // Calculer la longueur du texte source pour adapter le résumé
+    const sourceWords = text.split(/\s+/).length;
+    const targetWords = Math.min(maxLength, Math.max(20, Math.floor(sourceWords * 0.4))); // Max 40% du texte original
+    
+    const prompt = `Tu es un assistant qui crée de VRAIS résumés (plus courts que l'original).
 
-TEXTE À RÉSUMER :
+TEXTE ORIGINAL (${sourceWords} mots) :
 ${text}
 
-INSTRUCTIONS :
-- Résume ce texte en conservant TOUS les points importants
-- Utilise environ ${maxLength} mots
-- Écris PLUSIEURS phrases complètes
-- Garde la MÊME langue que le texte original (ne traduis pas)
-- Sois clair et précis
-- Retourne UNIQUEMENT le résumé, sans introduction ni conclusion
+INSTRUCTIONS STRICTES :
+- Crée un VRAI résumé de maximum ${targetWords} mots (BEAUCOUP plus court que l'original)
+- Garde UNIQUEMENT les 2-3 idées les plus importantes
+- SUPPRIME les détails, exemples, et informations secondaires
+- Utilise la MÊME langue que le texte original
+- Une ou deux phrases maximum
+- Le résumé DOIT être significativement plus court que l'original
 
-RÉSUMÉ :`;
+RÉSUMÉ (max ${targetWords} mots) :`;
 
     return this.generateContent(prompt, {
-      temperature: 0.4,
-      maxOutputTokens: 2048,
+      temperature: 0.3,
+      maxOutputTokens: 1024, // Fixe pour éviter les troncatures
     });
   }
 
