@@ -33,6 +33,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       processAIRequest(message, sendResponse);
       return true;
       
+    case 'UPLOAD_DOCUMENT':
+      uploadDocument(message, sendResponse);
+      return true;
+      
+    case 'RAG_SEARCH':
+      ragSearch(message, sendResponse);
+      return true;
+      
     case 'OPEN_POPUP':
       // Message pour ouvrir la popup (compatibilité)
       console.log('Popup open request:', message);
@@ -127,5 +135,113 @@ async function processAIRequest(message: any, sendResponse: (response: any) => v
       error: error instanceof Error ? error.message : 'Unknown error',
       action: (message.data || message).action 
     });
+  }
+}
+
+// Upload d'un document pour le RAG
+async function uploadDocument(message: any, sendResponse: (response: any) => void) {
+  try {
+    console.log('📄 Uploading document:', message.filename);
+    
+    const apiUrl = `${API_BASE_URL}/rag/documents`;
+    
+    const requestBody = {
+      fileName: message.filename,
+      content: message.content,
+      mimeType: message.fileType || 'text/plain'
+    };
+    
+    console.log('Upload request body:', { fileName: message.filename, mimeType: message.fileType, contentLength: message.content?.length });
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log('Upload response status:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Upload API Error Response:', errorText);
+      throw new Error(`Upload API Error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Document upload success:', result);
+    
+    sendResponse({ 
+      success: true, 
+      result: result.message || 'Document uploadé avec succès',
+      documentId: result.documentId
+    });
+
+  } catch (error) {
+    console.error('❌ Error uploading document:', error);
+    sendResponse({ 
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur lors de l\'upload du document'
+    });
+  }
+}
+
+// Recherche dans les documents RAG
+async function ragSearch(message: any, sendResponse: (response: any) => void) {
+  try {
+    // Construction de l'URL avec query parameters (GET request)
+    const params = new URLSearchParams({
+      q: message.query,
+      limit: (message.limit || 5).toString()
+    });
+    
+    const apiUrl = `${API_BASE_URL}/rag/search?${params}`;
+    console.log('🔍 RAG Search - Making API request to:', apiUrl);
+
+    // Ajouter un timeout de 8 secondes pour la requête
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+    console.log('RAG Search response status:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('RAG Search API Error Response:', errorText);
+      throw new Error(`RAG Search API Error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ RAG Search success:', result);
+    
+    sendResponse({ 
+      success: true, 
+      results: result.results || [],
+      message: result.message
+    });
+
+  } catch (error) {
+    console.error('❌ Error in RAG search:', error);
+    
+    if (error instanceof Error && error.name === 'AbortError') {
+      sendResponse({ 
+        success: false,
+        error: 'Timeout - La recherche a pris trop de temps'
+      });
+    } else {
+      sendResponse({ 
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur lors de la recherche RAG'
+      });
+    }
   }
 }

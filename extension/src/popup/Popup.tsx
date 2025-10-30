@@ -116,6 +116,16 @@ export function Popup(): JSX.Element {
     }
   };
 
+  // Fonction pour réinitialiser l'état de traitement
+  const resetProcessingState = () => {
+    setProcessing({
+      isProcessing: false,
+      action: null,
+      result: null,
+      error: null,
+    });
+  };
+
   const processText = async (action: string, targetLanguage?: string) => {
     console.log('🎯 Popup: processText called with action:', action, 'targetLanguage:', targetLanguage);
     console.log('🎯 Popup: selectedText:', selectedText);
@@ -128,6 +138,7 @@ export function Popup(): JSX.Element {
         result: null,
         error: 'Aucun texte sélectionné. Sélectionnez du texte sur la page.',
       });
+      showNotification('error', 'Sélectionnez du texte sur la page avant d\'utiliser cette action');
       return;
     }
 
@@ -497,7 +508,15 @@ export function Popup(): JSX.Element {
               <div className="flex items-center justify-center py-8">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                  <p className="text-sm text-gray-600">Traitement en cours...</p>
+                  <p className="text-sm text-gray-600">
+                    Traitement en cours... ({processing.action || 'action'})
+                  </p>
+                  <button
+                    onClick={resetProcessingState}
+                    className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
+                  >
+                    Annuler
+                  </button>
                 </div>
               </div>
             )}
